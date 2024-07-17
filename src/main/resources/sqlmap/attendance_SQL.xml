@@ -1,0 +1,451 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.groovit.groupware.mapper.AttendanceMapper">
+	<!-- 근태 -->
+	<insert id="createPost">
+		INSERT INTO ATTENDANCE(ATTN_NO, EMP_ID, ATTN_BGNG, ATTN_FRST_REG_DT)
+		VALUES((SELECT NVL(MAX(ATTN_NO), 0)+1 FROM
+		ATTENDANCE),#{empId},SYSDATE,SYSDATE)
+	</insert>
+
+	<update id="updatePost">
+		UPDATE ATTENDANCE
+		SET ATTN_END = SYSDATE,
+		    ATTN_LAST_REG_DT = SYSDATE
+		WHERE ATTN_NO = (SELECT MAX(ATTN_NO)
+		                 FROM ATTENDANCE
+		                 WHERE TRUNC(ATTN_FRST_REG_DT) = TRUNC(SYSDATE)
+		                 AND EMP_ID = #{empId})
+		AND EMP_ID = #{empId}
+		AND TRUNC(ATTN_FRST_REG_DT) = TRUNC(SYSDATE)
+
+	</update>
+
+	<select id="selectBgng" parameterType="String" resultType="com.groovit.groupware.vo.AttendanceVO">
+		SELECT
+			  TO_CHAR(ATTN_BGNG, 'HH24:MI:SS')ATTN_BGNG
+			, TO_CHAR(ATTN_END, 'HH24:MI:SS')ATTN_END
+			, ATTN_FRST_REG_DT
+			, ATTN_LAST_REG_DT
+		FROM ATTENDANCE
+		WHERE EMP_ID = #{empId}
+		AND TRUNC(ATTN_BGNG) = TRUNC(SYSDATE)
+	</select>
+
+	<select id="selectAttnList" parameterType="String" resultType="com.groovit.groupware.vo.AttendanceVO">
+		SELECT ROUND((ATTN_END - ATTN_BGNG) * 24 * 60 * 60, 0) WORKED
+		FROM ATTENDANCE
+		WHERE EMP_ID = #{empId}
+		AND TRUNC(ATTN_BGNG) = TRUNC(SYSDATE)
+	</select>
+
+	<select id="loadAttnTable" parameterType="com.groovit.groupware.vo.AttendanceVO" resultType="com.groovit.groupware.vo.AttendanceVO">
+		SELECT
+		    attn_no,
+		    emp_id,
+		    attn_bgng,
+		    attn_end,
+		    attn_stts,
+		    attn_frst_reg_dt,
+		    attn_last_reg_dt
+		FROM
+		    attendance
+		WHERE
+		    emp_id = #{empId}
+		    AND TO_CHAR(attn_bgng, 'MM') = #{selectMonth}
+		ORDER BY
+			attn_bgng DESC
+	</select>
+
+	<select id="loadAttnChart" parameterType="String" resultType="hashMap">
+		WITH months AS (
+		    SELECT '01' AS month FROM dual UNION ALL
+		    SELECT '02' AS month FROM dual UNION ALL
+		    SELECT '03' AS month FROM dual UNION ALL
+		    SELECT '04' AS month FROM dual UNION ALL
+		    SELECT '05' AS month FROM dual UNION ALL
+		    SELECT '06' AS month FROM dual UNION ALL
+		    SELECT '07' AS month FROM dual UNION ALL
+		    SELECT '08' AS month FROM dual UNION ALL
+		    SELECT '09' AS month FROM dual UNION ALL
+		    SELECT '10' AS month FROM dual UNION ALL
+		    SELECT '11' AS month FROM dual UNION ALL
+		    SELECT '12' AS month FROM dual
+		)
+		SELECT
+		    m.month,
+		    NVL(a.attn_full, 0) AS attn_full,
+		    NVL(a.morning_off, 0) AS morning_off,
+		    NVL(a.afternoon_off, 0) AS afternoon_off
+		FROM
+		    months m
+		LEFT JOIN (
+		    SELECT
+		        TO_CHAR(ATTN_BGNG, 'MM') AS month,
+		        COUNT(CASE WHEN ATTN_STTS = 'AS00' THEN 1 END) AS attn_full,
+		        COUNT(CASE WHEN ATTN_STTS = 'AS01' THEN 1 END) AS morning_off,
+		        COUNT(CASE WHEN ATTN_STTS = 'AS02' THEN 1 END) AS afternoon_off
+		    FROM
+		        ATTENDANCE
+		    WHERE
+		        EMP_ID = #{empId}
+		    GROUP BY
+		        TO_CHAR(ATTN_BGNG, 'MM')
+		) a ON m.month = a.month
+		ORDER BY
+		    m.month
+	</select>
+
+	<select id="getTotal" resultType="int">
+		SELECT COUNT(*)
+		FROM
+	    ATTENDANCE
+	</select>
+
+
+	<select id="listVct" parameterType="String" resultType="com.groovit.groupware.vo.YearlyVacationVO">
+		SELECT YRYC_NO, YRYC_COUNT, EMP_ID, YRYC_REG_DT, YRYC_TY
+		FROM YEARLY_VACATION
+	</select>
+
+	<!-- 휴가 -->
+	<select id="vacationPostList" parameterType="hashMap" resultType="hashMap">
+SELECT 
+ 	L1.LE_NO,
+    L1.LE_MNG_CD,
+    LM.LE_MNG_NM,
+    L1.LE_CN,
+    TO_CHAR(L1.LE_BGNG_YMD, 'YY/MM/DD')LE_BGNG_YMD,
+    TO_CHAR(L1.LE_END_YMD, 'YY/MM/DD')LE_END_YMD,
+    L1.LE_AGENT,
+    L1.EMP_ID,
+    L1.APRVR_DOC_NO,
+    L1.LE_FRST_REG_DT,
+    L1.LE_LAST_REG_DT,
+    CASE 
+        WHEN TRUNC(LE_BGNG_YMD, 'MM') = TO_DATE('2024-' || #{month}, 'YYYY-MM') AND TRUNC(LE_END_YMD, 'MM') = TO_DATE('2024-' || #{month}, 'YYYY-MM') THEN LE_END_YMD - LE_BGNG_YMD + 1
+        WHEN TRUNC(LE_BGNG_YMD, 'MM') = TO_DATE('2024-' || #{month}, 'YYYY-MM') AND TRUNC(LE_END_YMD, 'MM') > TO_DATE('2024-' || #{month}, 'YYYY-MM') THEN LAST_DAY(TO_DATE('2024-' || #{month}, 'YYYY-MM')) - LE_BGNG_YMD + 1
+        WHEN TRUNC(LE_BGNG_YMD, 'MM') <![CDATA[ < ]]> TO_DATE('2024-' || #{month}, 'YYYY-MM') AND TRUNC(LE_END_YMD, 'MM') = TO_DATE('2024-' || #{month}, 'YYYY-MM') THEN LE_END_YMD - TO_DATE('2024-' || #{month}, 'YYYY-MM') + 1
+        ELSE 0
+    END AS COUNT_DAYS
+FROM 
+    LEAVE1 L1
+    JOIN LEAVE_MANAGEMENT LM ON L1.LE_MNG_CD = LM.LE_MNG_CD
+WHERE 
+    EMP_ID = #{empId}
+    AND (
+        TRUNC(LE_BGNG_YMD, 'MM') = TO_DATE('2024-' || #{month}, 'YYYY-MM')
+        OR 
+        TRUNC(LE_END_YMD, 'MM') = TO_DATE('2024-' || #{month}, 'YYYY-MM')
+    )
+
+	</select>
+
+
+
+ 	<insert id="leaveInsert" parameterType="com.groovit.groupware.vo.Leave1VO">
+     INSERT INTO LEAVE1(LE_NO, LE_MNG_CD, LE_CN, LE_BGNG_YMD, LE_END_YMD, LE_FRST_REG_DT, LE_LAST_REG_DT, LE_AGENT, EMP_ID, APRVR_DOC_NO)
+     VALUES((SELECT NVL(MAX(LE_NO), 0)+1 FROM LEAVE1),#{leMngCd},#{leCn},#{leBgngYmd},#{leEndYmd},SYSDATE,SYSDATE,#{leAgent},#{empId},'02')
+ 	</insert>
+
+	<!-- 부서근태 -->
+	<resultMap type="com.groovit.groupware.vo.AttendanceVO" id="departMap">
+		<result property="attnNo" column="ATTN_NO"/>
+		<result property="empId" column="EMP_ID"/>
+		<result property="attnBgng" column="ATTN_BGNG"/>
+		<result property="attnEnd" column="ATTN_END"/>
+		<result property="attnStts" column="ATTN_STTS"/>
+		<result property="attnFrstRegDt" column="ATTN_FRST_REG_DT"/>
+		<result property="attnLastRegDt" column="ATTN_LAST_REG_DT"/>
+	</resultMap>
+
+	<resultMap type="com.groovit.groupware.vo.EmployeeVO" id="empMap">
+		<result property="empId" column="EMP_ID"/>
+		<result property="empPass" column="EMP_PASS"/>
+		<result property="empMng" column="EMP_MNG"/>
+		<result property="atchfileSn" column="ATCHFILE_SN"/>
+		<result property="empStts" column="EMP_STTS"/>
+		<result property="empNm" column="EMP_NM"/>
+		<result property="empMail" column="EMP_MAIL"/>
+		<result property="empEml" column="EMP_EML"/>
+		<result property="empTelno" column="EMP_TELNO"/>
+		<result property="empAddr" column="EMP_ADDR"/>
+		<result property="empDaddr" column="EMP_DADDR"/>
+		<result property="empBrdt" column="EMP_BRDT"/>
+		<result property="empJncmpYmd" column="EMP_JNCMP_YMD"/>
+		<result property="deptCd" column="DEPT_CD"/>
+		<result property="jbgdCd" column="JBGD_CD"/>
+		<collection property="departVOList" resultMap="deptMap"></collection>
+		<collection property="attendVOList" resultMap="departMap"></collection>
+	</resultMap>
+
+	<resultMap type="com.groovit.groupware.vo.DepartmentVO" id="deptMap">
+		<result property="deptCd" column="DEPT_CD"/>
+		<result property="deptUpCd" column="DEPT_UP_CD"/>
+		<result property="deptNm" column="DEPT_NM"/>
+		<result property="deptUseYn" column="DEPT_USE_YN"/>
+		<result property="deptFrstRegDt" column="DEPT_FRST_REG_DT"/>
+		<result property="deptFrstRgtr" column="DEPT_FRST_RGTR"/>
+		<result property="deptLastRegDt" column="DEPT_LAST_REG_DT"/>
+		<result property="deptLastRgtr" column="DEPT_LAST_RGTR"/>
+	</resultMap>
+
+	<select id="departList" parameterType="hashMap" resultType="com.groovit.groupware.vo.AttendanceVO">
+		WITH U AS(
+			SELECT ROW_NUMBER() OVER(ORDER BY attn_bgng DESC) RNUM
+				,  T.*
+		    FROM
+		    (
+				SELECT
+				    attendance.attn_no
+				  , attendance.emp_id
+				  , to_char(attendance.attn_bgng, 'YYYY/mm/DD') as attn_bgng
+				  , to_char(attendance.attn_bgng, 'HH24:MI') as attnBgngTime
+				  , to_char(attendance.attn_end, 'HH24:MI') as attnEndTime
+				  , attendance.attn_stts
+				  , attendance.attn_frst_reg_dt
+				  , attendance.attn_last_reg_dt
+				  , employee.emp_nm
+				  , com_code_detail.com_code_detail_nm as stts
+				FROM
+				    attendance
+				left outer join employee
+				    on (employee.emp_id = attendance.emp_id)
+				left outer join com_code_detail
+				    on (attn_stts = com_code_detail.com_code_detail)
+				WHERE
+				    attendance.emp_id in (
+				        select emp_id
+				        from employee
+				        where
+				        DEPT_CD = #{deptCd}
+				        and emp_stts = 'E00'
+				    )
+				and to_char(attn_bgng, 'mm') = #{month}
+				<if test="keyword != null and keyword != ''">
+					and employee.emp_nm like '%' || #{keyword} || '%'
+				</if>
+				order by to_char(attendance.attn_bgng, 'HH24:MI') desc
+				) T
+			)
+		SELECT  U.*
+		FROM    U
+		WHERE   U.RNUM BETWEEN ((#{currentPage} * 10)-(10 - 1)) AND (#{currentPage} * 10)
+		ORDER BY attn_bgng desc, attnBgngTime desc
+	</select>
+
+	<select id="getTotalByDepart" resultType="int">
+		select count(*)
+		from attendance
+		where
+		    attendance.emp_id in (
+		        select emp_id
+		        from employee
+		        where
+		        DEPT_CD = #{deptCd}
+				<if test="keyword != null and keyword != ''">
+					and employee.emp_nm like '%' || #{keyword} || '%'
+				</if>
+		    )
+		and to_char(attn_bgng, 'mm') = #{month}
+	</select>
+
+	<select id="getEmpData" parameterType="String" resultType="com.groovit.groupware.vo.EmployeeVO">
+		SELECT
+		    a.EMP_NM,
+		    b.JBGD_NM,
+		    c.dept_nm
+		FROM
+		    EMPLOYEE a, JOB_GRADE b, DEPARTMENT c
+		WHERE
+		    a.JBGD_CD = b.JBGD_CD
+		    AND a.DEPT_CD = c.DEPT_CD
+		    AND EMP_ID = #{empId}
+	</select>
+
+	<select id="getEmployeeByDepart" resultType="employeeVO">
+		SELECT
+		    emp_id
+		  , emp_nm
+		  , job_grade.jbgd_nm
+		FROM
+		    employee
+		left outer join job_grade
+		    on (employee.jbgd_cd = job_grade.jbgd_cd)
+		where dept_cd = #{deptCd}
+		and emp_stts = 'E00'
+		order by employee.jbgd_cd
+	</select>
+
+	<select id="getTodayStaticByStts" resultType="map">
+		select
+		    code.com_code_detail_nm as stts,
+		    nvl(A.count, 0) as count
+		from (
+		    select com_code_detail, com_code_detail_nm
+		    from com_code_detail
+		    where com_code = 'COM003'
+		) code
+		left join (
+		    select attn_stts, count(*) as count
+		    from attendance
+		    where emp_id in (
+		        select emp_id
+		        from employee
+		        where dept_cd = #{deptCd}
+		        and emp_stts = 'E00'
+		    )
+		    and trunc(attn_bgng) = trunc(sysdate)
+		    group by attn_stts
+		    union all
+		    select 'AS99' as attn_stts, count(*) as count
+		    from (
+		        select emp_id
+		        from employee
+		        where dept_cd = #{deptCd}
+		        and emp_stts = 'E00'
+		    ) emp
+		    where emp_id not in (
+		        select emp_id
+		        from attendance
+		        where trunc(attn_bgng) = trunc(sysdate)
+		    )
+		) A
+		on A.attn_stts = code.com_code_detail
+	</select>
+
+	<select id="getLeaveStaticByDepartAndMonth" resultType="map">
+		SELECT months.month, nvl(A.count , 0) as count
+		    from
+		    (
+		        SELECT TO_CHAR(ADD_MONTHS(TO_DATE('2024-01', 'YYYY-MM'), LEVEL - 1), 'MON') AS month
+		        FROM dual
+		        CONNECT BY LEVEL <![CDATA[ <= ]]> MONTHS_BETWEEN(TRUNC(sysdate, 'MM'), TO_DATE('2024-01', 'YYYY-MM')) + 1
+		    ) months
+		    left join
+		    (
+		        select to_char(ATTN_BGNG, 'MON') as month
+		        , count(ATTN_BGNG) as count
+		        FROM
+		            attendance
+		        where ATTN_STTS = 'AS02'
+		        and to_char(ATTN_BGNG, 'YYYY') = 2024
+		        and emp_id in (
+		            select emp_id
+		            from employee
+		            where dept_cd = #{deptCd}
+		            and emp_stts = 'E00'
+		        )
+		        group by to_char(ATTN_BGNG, 'MON')
+		    ) A
+		on months.month = A.month
+		order by months.month
+	</select>
+
+	<select id="getAttendanceAvgByDepartAndMonth" resultType="map">
+		SELECT months.month, nvl(A.avgH, 0) as avgH
+		from (
+		    SELECT TO_CHAR(ADD_MONTHS(TO_DATE('2024-01', 'YYYY-MM'), LEVEL - 1), 'MON') AS month
+		    FROM dual
+		    CONNECT BY LEVEL <![CDATA[ <= ]]> MONTHS_BETWEEN(TRUNC(sysdate, 'MM'), TO_DATE('2024-01', 'YYYY-MM')) + 1
+		) months
+		left join
+		(
+		    select to_char(ATTN_BGNG, 'MON') as month,
+		    ROUND(avg(TO_DATE(TO_CHAR(ATTN_END, 'HH24:MI'), 'HH24:MI') - TO_DATE(TO_CHAR(ATTN_BGNG, 'HH24:MI'), 'HH24:MI')) * 24, 2) AS avgH
+		    FROM
+		        attendance
+		    where to_char(ATTN_BGNG, 'YYYY') = 2024
+		    and emp_id in (
+		        select emp_id
+		        from employee
+		        where dept_cd = #{deptCd}
+		        and emp_stts = 'E00'
+		    )
+		    group by to_char(ATTN_BGNG, 'MON')
+		) A
+		on months.month = A.month
+		order by months.month
+	</select>
+
+	<select id="getOverTimeStaticByDepartAndMonth" resultType="map">
+		SELECT months.month, nvl(A.count, 0) as count
+		from (
+		    SELECT TO_CHAR(ADD_MONTHS(TO_DATE('2024-01', 'YYYY-MM'), LEVEL - 1), 'MON') AS month
+		    FROM dual
+		    CONNECT BY LEVEL <![CDATA[ <= ]]> MONTHS_BETWEEN(TRUNC(sysdate, 'MM'), TO_DATE('2024-01', 'YYYY-MM')) + 1
+		) months
+		left join
+		(
+		    select to_char(ATTN_BGNG, 'MON') as month,
+		    count(*) as count
+		    FROM
+		        attendance
+		    where to_char(ATTN_BGNG, 'YYYY') = 2024
+		    and emp_id in (
+		        select emp_id
+		        from employee
+		        where dept_cd = #{deptCd}
+		        and emp_stts = 'E00'
+		    )
+		    and TO_DATE(TO_CHAR(ATTN_END, 'HH24:MI'), 'HH24:MI') > to_date('19:00', 'HH24:MI')
+		    group by to_char(ATTN_BGNG, 'MON')
+		) A
+		on months.month = A.month
+		order by months.month
+	</select>
+
+	<select id="getAttendanceSumByWeek" resultType="map">
+		WITH weeks AS (
+		    SELECT LEVEL AS week
+		    FROM DUAL
+		    CONNECT BY LEVEL <![CDATA[ <= ]]> 5
+		)
+		SELECT
+		    weeks.week || '주' AS week,
+		    round(NVL(SUM((ATTN_END - ATTN_BGNG) * 24), 0), 1) AS sum
+		FROM
+		    weeks
+		LEFT JOIN
+		    attendance
+		ON
+		    weeks.week = TO_CHAR(attendance.ATTN_BGNG, 'W')
+		    AND TO_CHAR(attendance.ATTN_BGNG, 'mm') = to_char(sysdate, 'mm')
+		    AND attendance.emp_id = #{empId}
+		GROUP BY
+		    weeks.week
+		ORDER BY
+		    weeks.week
+	</select>
+
+
+	<select id="countVacDays" parameterType="String" resultType="hashMap">
+	    SELECT SUM(COUNT_DAYS) AS TOTAL_DAYS
+			FROM (
+			    SELECT 
+			        CASE 
+			            WHEN LE_BGNG_YMD <![CDATA[ >= ]]> TO_DATE('2024-01-01', 'YYYY-MM-DD') AND LE_END_YMD <![CDATA[ <= ]]> TO_DATE('2024-12-31', 'YYYY-MM-DD') THEN LE_END_YMD - LE_BGNG_YMD + 1
+			            WHEN LE_BGNG_YMD <![CDATA[ < ]]> TO_DATE('2024-01-01', 'YYYY-MM-DD') AND LE_END_YMD <![CDATA[ > ]]> TO_DATE('2024-12-31', 'YYYY-MM-DD') THEN TO_DATE('2024-12-31', 'YYYY-MM-DD') - TO_DATE('2024-01-01', 'YYYY-MM-DD') + 1
+			            WHEN LE_BGNG_YMD <![CDATA[ < ]]> TO_DATE('2024-01-01', 'YYYY-MM-DD') AND LE_END_YMD <![CDATA[ <= ]]> TO_DATE('2024-12-31', 'YYYY-MM-DD') THEN LE_END_YMD - TO_DATE('2024-01-01', 'YYYY-MM-DD') + 1
+			            WHEN LE_BGNG_YMD <![CDATA[ >= ]]> TO_DATE('2024-01-01', 'YYYY-MM-DD') AND LE_END_YMD <![CDATA[ > ]]> TO_DATE('2024-12-31', 'YYYY-MM-DD') THEN TO_DATE('2024-12-31', 'YYYY-MM-DD') - LE_BGNG_YMD + 1
+			            ELSE 0
+			        END AS COUNT_DAYS
+			    FROM 
+			        LEAVE1 L1
+			        JOIN LEAVE_MANAGEMENT LM ON L1.LE_MNG_CD = LM.LE_MNG_CD
+			    WHERE 
+			        EMP_ID = #{empId}
+			        AND APRVR_DOC_NO = '03'
+			        AND (
+			            LE_BGNG_YMD <![CDATA[ <= ]]> TO_DATE('2024-12-31', 'YYYY-MM-DD') 
+			            AND LE_END_YMD <![CDATA[ >= ]]> TO_DATE('2024-01-01', 'YYYY-MM-DD')
+			        )
+			) 
+				
+	
+	
+	
+	</select>
+
+
+</mapper>

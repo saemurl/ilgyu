@@ -1,0 +1,416 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="survey">
+
+<select id="getTotal" resultType="int">
+	SELECT COUNT(*)
+	FROM
+	    survey
+	WHERE 1=1
+	and del_yn = 'N'
+	<choose>
+		<when test="stts == 'progress'">
+			and survey.srvy_end_ymd <![CDATA[ > ]]> sysdate
+		</when>
+		<when test="stts == 'done'">
+			and survey.srvy_end_ymd <![CDATA[ < ]]> sysdate	
+		</when>
+	</choose>
+	<if test="keyword != null and keyword != ''">
+		and srvy_ttl LIKE '%' || #{keyword} || '%'
+	</if>
+	
+</select>
+
+<select id="getList" parameterType="hashMap" resultType="com.groovit.groupware.vo.SurveyVO">
+		WITH U AS(
+		    SELECT ROW_NUMBER() OVER(ORDER BY srvy_no DESC) RNUM
+		                ,  T.*
+		    FROM
+		    (
+		        SELECT
+				    srvy_no
+				  , survey.emp_id
+				  , emp_nm
+				  , department.dept_nm as writerDept
+                  , job_grade.jbgd_nm as writerJob
+				  , srvy_ttl
+				  , srvy_cn
+                  , to_char(srvy_wrt_ymd, 'YYYY.MM.dd(DY) HH24:MI') as srvy_wrt_ymd
+                  , to_char(srvy_bgng_ymd, 'YYYY.MM.dd HH24:MI') as srvy_bgng_ymd
+                  , to_char(srvy_end_ymd, 'YYYY.MM.dd HH24:MI') as srvy_end_ymd
+                  , (
+                  		SELECT COUNT(DISTINCT sr.emp_id)
+                    	FROM survey_response sr
+                   		 where sr.srvy_no = survey.srvy_no
+					) as participant_count
+				FROM
+				    survey
+                join employee 
+                	on(survey.emp_id = employee.emp_id)
+                left outer join department
+                    on (employee.dept_cd = department.dept_cd)
+                left outer join job_grade
+                    on (employee.jbgd_cd = job_grade.jbgd_cd)
+                where 1=1
+                and del_yn = 'N'  
+                <choose>
+	                <when test="stts == 'progress'">
+						and survey.srvy_end_ymd <![CDATA[ > ]]>  sysdate
+					</when>
+					<when test="stts == 'done'">
+						and survey.srvy_end_ymd <![CDATA[ < ]]> sysdate	
+					</when>
+				</choose>
+				<if test="keyword != null and keyword != ''">
+					and srvy_ttl LIKE '%' || #{keyword} || '%'
+				</if>
+				<if test="empId != null and empId != ''">
+					and survey.srvy_no in (
+	                 select srvy_no
+	                    from survey_response
+	                    where survey_response.emp_id = #{empId}
+	                )
+				</if>
+		    ) T
+		)
+		SELECT  U.*
+		FROM    U
+		WHERE   U.RNUM BETWEEN ((#{currentPage} * 6)-(6 - 1)) AND (#{currentPage} * 6)
+</select>
+
+<resultMap type="com.groovit.groupware.vo.SurveyVO" id="surveyMap">
+	<result property="srvyNo" column="SRVY_NO"/>
+	<result property="empId" column="EMP_ID"/>
+	<result property="empNm" column="EMP_NM"/>
+	<result property="srvyTtl" column="SRVY_TTL"/>
+	<result property="srvyCn" column="SRVY_CN"/>
+	<result property="srvyWrtYmd" column="SRVY_WRT_YMD"/>
+	<result property="srvyBgngYmd" column="SRVY_BGNG_YMD"/>
+	<result property="srvyEndYmd" column="SRVY_END_YMD"/>
+	<collection property="questionList" resultMap="questionMap"></collection>
+</resultMap>
+
+<resultMap type="com.groovit.groupware.vo.SurveyQuestionVO" id="questionMap">
+	<result property="sqSn" column="SQ_SN"/>
+	<result property="srvyNo" column="SRVY_NO"/>
+	<result property="sqQstnCn" column="SQ_QSTN_CN"/>
+	<result property="sqEsntlYn" column="SQ_ESNTL_YN"/>
+	<collection property="answerList" resultMap="answerMap"></collection>
+</resultMap>
+
+<resultMap type="com.groovit.groupware.vo.SurveyAnswerVO" id="answerMap">
+	<result property="saSn" column="SA_SN"/>
+	<result property="sqSn" column="SQ_SN"/>
+	<result property="saCn" column="SA_CN"/>
+	<result property="numOfResp" column="numOfResp"/>
+</resultMap>
+
+<select id="detail" parameterType="com.groovit.groupware.vo.SurveyVO" resultMap="surveyMap">
+	SELECT
+	    survey.srvy_no
+	  , survey.emp_id
+	  , survey.srvy_ttl
+	  , survey.srvy_cn
+	  , survey_question.sq_sn
+	  , survey_question.srvy_no
+	  , survey_question.sq_qstn_cn
+	  , survey_question.sq_esntl_yn
+	  , to_char(srvy_wrt_ymd, 'YYYY.MM.dd(DY) HH24:MI') as srvy_wrt_ymd
+	  , to_char(srvy_bgng_ymd, 'YYYY.MM.dd HH24:MI') as srvy_bgng_ymd
+	  , to_char(srvy_end_ymd, 'YYYY.MM.dd HH24:MI') as srvy_end_ymd
+	  , SURVEY_ANSWER.sa_sn
+	  , SURVEY_ANSWER.sa_cn
+	  , employee.emp_nm
+	FROM SURVEY
+	LEFT OUTER JOIN SURVEY_QUESTION
+			ON (SURVEY.srvy_no = SURVEY_QUESTION.srvy_no)
+	LEFT OUTER JOIN SURVEY_ANSWER
+	        ON (SURVEY_QUESTION.sq_sn = SURVEY_ANSWER.sq_sn)
+	LEFT OUTER JOIN EMPLOYEE
+	        ON (EMPLOYEE.emp_id = SURVEY.emp_id)
+	WHERE
+	   survey.srvy_no=#{srvyNo}
+	ORDER BY
+    	SURVEY_QUESTION.sq_sn
+</select>
+
+<insert id="resp" parameterType="com.groovit.groupware.vo.SurveyResponseVO">
+	<selectKey resultType="String" order="BEFORE" keyProperty="srCd">
+		select 'SRE'||trim(to_char(nvl(substr(max(sr_cd),4),0)+1, '000'))
+        from survey_response
+     </selectKey>
+     INSERT INTO survey_response (
+	    sr_cd
+	    , sq_sn
+	    , sa_sn
+	    , emp_id
+	    , srvy_no
+	) VALUES (
+	    #{srCd}
+	    , #{sqSn}
+	    , #{saSn}
+	    , #{empId}
+	    , #{srvyNo}
+	)
+</insert>
+
+<select id="checkParticipate" parameterType="com.groovit.groupware.vo.SurveyResponseVO" resultType="int">
+	select
+		count(*)
+	from
+		survey_response
+	where
+		emp_id=#{empId}
+	and srvy_no=#{srvyNo}
+</select>
+
+<select id="result" resultMap="surveyMap">
+	SELECT
+	  survey_answer.sq_sn
+	  , survey_answer.sa_sn
+	  , survey_answer.sa_cn
+	  , nvl(A.numOfResp,0) as numOfResp
+	  , survey.srvy_no
+	  , survey_question.sq_qstn_cn
+	  , survey_question.SQ_ESNTL_YN
+	  , survey.srvy_ttl
+	  , survey.srvy_cn
+	  , to_char(srvy_wrt_ymd, 'YYYY.MM.dd(DY) HH24:MI') as srvy_wrt_ymd
+	  , to_char(srvy_bgng_ymd, 'YYYY.MM.dd HH24:MI') as srvy_bgng_ymd
+	  , to_char(srvy_end_ymd, 'YYYY.MM.dd HH24:MI') as srvy_end_ymd
+	  , employee.emp_nm
+	  , survey.emp_id
+	FROM
+	    survey_answer
+	left outer join survey_question
+	    on(survey_question.sq_sn = survey_answer.sq_sn)
+	left outer join survey
+	    on(survey.srvy_no = survey_question.srvy_no)
+	left outer join (
+	SELECT
+	        srvy_no
+	        , sq_sn
+	        , sa_sn
+	        , count(sa_sn) as numOfResp
+	    FROM
+	        survey_response
+
+	    where
+	        srvy_no = #{srvyNo}
+	    group by srvy_no, sq_sn, sa_sn
+	) A
+	    on (A.sa_sn = survey_answer.sa_sn)
+	left outer join employee
+	    on(employee.emp_id=survey.emp_id)
+	where
+	    survey.srvy_no = #{srvyNo}
+	order by 1,2
+</select>
+<insert id="insertSurvey">
+	<selectKey resultType="String" order="BEFORE" keyProperty="srvyNo">
+		select 'SRV'||trim(to_char(nvl(substr(max(srvy_no),4),0)+1, '000'))
+        from survey
+	</selectKey>
+	INSERT INTO survey (
+	    srvy_no
+	    , emp_id
+	    , srvy_ttl
+	    , srvy_cn
+	    , srvy_wrt_ymd
+	    , srvy_bgng_ymd
+	    , srvy_end_ymd
+	) VALUES (
+	    #{srvyNo}
+	  , #{empId}
+	  , #{srvyTtl}
+	  , #{srvyCn}
+	  , sysdate
+	  , TO_DATE(#{srvyBgngYmd}, 'YYYY-MM-DD HH24:MI')
+	  , TO_DATE(#{srvyEndYmd}, 'YYYY-MM-DD HH24:MI')
+	)
+</insert>
+
+<insert id="insertQuestion">
+	<selectKey resultType="int" order="BEFORE" keyProperty="sqSn">
+		select nvl(max(sq_sn),0)+1
+		from survey_question
+	</selectKey>
+	INSERT INTO survey_question (
+	    sq_sn
+	    , srvy_no
+	    , sq_qstn_cn
+	    , sq_esntl_yn
+	) VALUES (
+	    #{sqSn}
+	  , #{srvyNo}
+	  , #{sqQstnCn}
+	  , #{sqEsntlYn}
+	)
+</insert>
+
+<insert id="insertAnswer">
+	<selectKey resultType="int" order="BEFORE" keyProperty="saSn">
+		select nvl(max(sa_sn),0)+1
+		from survey_answer
+	</selectKey>
+	INSERT INTO survey_answer (
+    	sa_sn
+	    , sq_sn
+	    , sa_cn
+	) VALUES (
+	    #{saSn}
+	  , #{sqSn}
+	  , #{saCn}
+	)
+</insert>
+
+<select id="getMyTotal" resultType="int">
+	select count(distinct(srvy_no))
+	from survey_response
+	where emp_id=#{empId}
+	and survey_response.srvy_no in (
+	    select srvy_no
+	    from survey
+	    where 1=1 
+	    and del_yn = 'N'
+		<choose>
+			<when test="stts == 'progress'">
+				and srvy_end_ymd <![CDATA[ > ]]> sysdate
+			</when>
+			<when test="stts == 'done'">
+				and srvy_end_ymd <![CDATA[ < ]]> sysdate	
+			</when>
+		</choose>
+		<if test="keyword != null and keyword != ''">
+			and srvy_ttl LIKE '%' || #{keyword} || '%'
+		</if>
+	)
+	
+</select>
+
+<select id="getManageTotal" resultType="int">
+	select count(*)
+	from survey
+	where emp_id = #{empId}
+	and del_yn = 'N'
+	<choose>
+		<when test="stts == 'progress'">
+			and srvy_end_ymd <![CDATA[ > ]]> sysdate
+		</when>
+		<when test="stts == 'done'">
+			and srvy_end_ymd <![CDATA[ < ]]> sysdate	
+		</when>
+	</choose>
+	<if test="keyword != null and keyword != ''">
+		and srvy_ttl LIKE '%' || #{keyword} || '%'
+	</if>
+</select>
+
+<select id="getManageList" resultMap="surveyMap">
+	WITH U AS(
+	    SELECT ROW_NUMBER() OVER(ORDER BY srvy_no DESC) RNUM
+	                ,  T.*
+	    FROM
+	    (
+	        SELECT
+			    srvy_no
+			  , survey.emp_id
+			  , srvy_ttl
+                 , to_char(srvy_wrt_ymd, 'YYYY.MM.dd(DY) HH24:MI') as srvy_wrt_ymd
+                 , to_char(srvy_bgng_ymd, 'YYYY.MM.dd HH24:MI') as srvy_bgng_ymd
+                 , to_char(srvy_end_ymd, 'YYYY.MM.dd HH24:MI') as srvy_end_ymd
+                 , (
+               			SELECT COUNT(DISTINCT sr.emp_id)
+                 		FROM survey_response sr
+						where sr.srvy_no = survey.srvy_no
+					) as participant_count
+			FROM
+			    survey
+			where 1=1
+			and del_yn = 'N'
+			<choose>
+				<when test="stts == 'progress'">
+					and srvy_end_ymd <![CDATA[ > ]]> sysdate
+				</when>
+				<when test="stts == 'done'">
+					and srvy_end_ymd <![CDATA[ < ]]> sysdate	
+				</when>
+			</choose>
+            and survey.emp_id = #{empId}
+           	<if test="keyword != null and keyword != ''">
+				and srvy_ttl LIKE '%' || #{keyword} || '%'
+			</if>
+	    ) T
+	)
+	SELECT  U.*
+	FROM    U
+	WHERE   U.RNUM BETWEEN ((#{currentPage} * 10)-(10 - 1)) AND (#{currentPage} * 10)
+</select>
+
+<update id="updateStop">
+	update survey
+	set 
+		srvy_end_ymd = sysdate
+	where 
+		srvy_no = #{srvyNo}
+</update>
+
+<update id="delete">
+	update survey
+	set 
+		del_yn = 'Y'
+	where 
+		srvy_no = #{srvyNo}
+</update>
+
+<update id="updateSurvey">
+	UPDATE survey
+	SET
+	    srvy_ttl = #{srvyTtl}, 
+	    SRVY_CN = #{srvyCn}, 
+	    <if test="srvyBgngYmd != null and srvyBgngYmd!= ''">
+		    SRVY_BGNG_YMD = TO_DATE(#{srvyBgngYmd}, 'YYYY-MM-DD HH24:MI'), 
+	    </if>
+	    SRVY_END_YMD= TO_DATE(#{srvyEndYmd}, 'YYYY-MM-DD HH24:MI')
+	WHERE
+	    SRVY_NO = #{srvyNo}
+</update>
+
+<select id="getAllEmpTotal" resultType="int">
+	select count(*)
+	from employee
+	where emp_stts = 'E00'
+</select>
+
+<select id="mainSurveyList" resultType="com.groovit.groupware.vo.SurveyVO">
+	SELECT
+	    srvy_no
+	  , srvy_ttl
+	  , to_char(srvy_end_ymd, 'YYYY.MM.dd HH24:MI') as srvy_end_ymd
+	  , (
+	        SELECT COUNT(DISTINCT sr.emp_id)
+	        FROM survey_response sr
+	         where sr.srvy_no = survey.srvy_no
+	    ) as participant_count
+	FROM
+	    survey
+	where survey.srvy_no in (            
+	    select P.srvy_no
+	    from
+	    (
+	        select U.*, rownum as rnum
+	        from
+	        (
+	            select srvy_no, SRVY_END_YMD
+	             from survey
+	             where del_yn = 'N'
+	             and SRVY_END_YMD <![CDATA[ > ]]> sysdate
+	            order by SRVY_END_YMD
+	        ) U
+	    )P
+	    where p.rnum between 1 and 5
+	)
+	order by SRVY_END_YMD
+</select>
+</mapper>

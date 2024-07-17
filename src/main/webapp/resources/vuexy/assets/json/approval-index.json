@@ -1,0 +1,74 @@
+{
+  "data": [
+    {
+      "id": 1,
+      "title": "Project Plan Review",
+      "date": "2024-06-10 09:30",
+      "drafter": "Koressa Leyfield",
+      "status": 2
+    },
+    {
+      "id": 2,
+      "title": "Budget Allocation",
+      "date": "2024-06-11 14:15",
+      "drafter": "Tania Brotherhood",
+      "status": 2
+    },
+    {
+      "id": 3,
+      "title": "Team Meeting Notes",
+      "date": "2024-06-12 11:00",
+      "drafter": "Clemmie Montgomery",
+      "status": 2
+    },
+    {
+      "id": 4,
+      "title": "Client Feedback",
+      "date": "2024-06-13 16:45",
+      "drafter": "Job Jope",
+      "status": 3
+    },
+    {
+      "id": 5,
+      "title": "Quarterly Report",
+      "date": "2024-06-14 10:30",
+      "drafter": "Christoffer Derell",
+      "status": 3
+    },
+    {
+      "id": 6,
+      "title": "Marketing Strategy",
+      "date": "2024-06-15 15:00",
+      "drafter": "Herminia Eyree",
+      "status": 2
+    },
+    {
+      "id": 7,
+      "title": "Product Launch Plan",
+      "date": "2024-06-16 13:00",
+      "drafter": "Dela Lathwell",
+      "status": 3
+    },
+    {
+      "id": 8,
+      "title": "Sales Data Analysis",
+      "date": "2024-06-17 09:00",
+      "drafter": "Kirbie Greenhow",
+      "status": 2
+    },
+    {
+      "id": 9,
+      "title": "Annual General Meeting",
+      "date": "2024-06-18 10:00",
+      "drafter": "Adrienne Tourne",
+      "status": 2
+    },
+    {
+      "id": 10,
+      "title": "Performance Review",
+      "date": "2024-06-19 14:30",
+      "drafter": "Vanya Hearons",
+      "status": 2
+    }
+  ]
+}

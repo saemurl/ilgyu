@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:security="http://www.springframework.org/schema/security"
+	xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	
+	<!-- Custom AccessDeniedHandler -->
+	<bean id="customAccessDenied"
+		 class="com.groovit.groupware.security.CustomAccessDeniedHandler"></bean>
+		 
+	<!-- Custom LoginSuccessHandler --> 
+	<bean id="customLoginSuccess"
+		 class="com.groovit.groupware.security.CustomLoginSuccessHandler"></bean>
+	
+	<!-- Custom UserDetailsService -->
+	<bean id="customUserDetailsService"
+		 class="com.groovit.groupware.security.CustomUserDetailsService"></bean>	 
+		 
+	<!-- <bean id="customPasswordEncoder" 
+		class="kr.or.ddit.security.CustomNoOpPasswordEncoder"></bean> -->
+
+	<!-- Password Encoder Bean -->
+	<bean id="passwordEncoder"
+		class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
+		
+	<!-- 인증/인가 처리 시 사용자 정의 테이블 및 컬럼 사용 -->
+	<!-- <bean id="customUserDetailsService" 
+		class="kr.or.ddit.security.CustomUserDetailsService"></bean> -->
+	
+	<!-- Security HTTP Configuration -->
+	<security:http>
+		<!-- URI 패턴으로 접근 제한을 설정함 -->
+		<!-- 예시 URL 패턴을 필요에 따라 수정 -->
+		<!-- <security:intercept-url pattern="/board/list" access="permitAll" /> -->
+		<!-- <security:intercept-url pattern="/board/register" access="hasRole('ROLE_MEMBER')" /> -->
+		<!-- <security:intercept-url pattern="/notice/list" access="permitAll"  /> -->
+		<!-- <security:intercept-url pattern="/notice/register" access="hasRole('ROLE_ADMIN')" /> -->
+		
+		<!-- 폼 기반 인증 기능 사용 -->
+        <!-- 사용자 정의 로그인 페이지 사용 -->
+		<security:form-login login-page="/login" 
+			authentication-success-handler-ref="customLoginSuccess" />
+		
+		<!-- dataSource를 통해 지정한 Database의
+		약속된 테이블(persistent_logins)를 이용하여
+		기존 로그인 정보를 기록함
+		token-validity-seconds : 쿠키의 유효시간(초) 7일로 설정
+		-->
+		<!-- <security:remember-me data-source-ref="dataSource"
+			token-validity-seconds="604800" /> -->
+		
+		<!-- 로그아웃 설정 -->
+		<security:logout logout-url="/logout"
+                     logout-success-url="/login?logout"
+                     invalidate-session="true"
+                     delete-cookies="JSESSION_ID" />
+		
+		<!-- 사용자 정의 접근 거부 처리자 -->
+		<security:access-denied-handler ref="customAccessDenied" />
+		
+		<!-- 접근 거부 처리자의 URI를 지정 -->
+		<!-- <security:access-denied-handler error-page="/accessError" /> -->
+	</security:http>
+	
+	
+	<!-- 인증 관리자 설정 -->
+	<security:authentication-manager>
+		<!-- 지정된 아이디와 패스워드로 로그인이 가능하도록 설정함 -->
+		<security:authentication-provider user-service-ref="customUserDetailsService">
+		<!-- <security:authentication-provider>
+			dataSource : root-content.xml에 정의되어 있음 -->
+			<security:password-encoder ref="passwordEncoder"/>
+		</security:authentication-provider>
+	</security:authentication-manager>
+</beans>
+
+
+

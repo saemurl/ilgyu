@@ -1,0 +1,814 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.groovit.groupware.mapper.ApprovalMapper">
+
+<resultMap type="com.groovit.groupware.vo.ApprovalVO" id="approvalMap">
+	<result property="aprvrDocNo" column="APRVR_DOC_NO"/>
+	<result property="aprvrDocTtl" column="APRVR_DOC_TTL"/>
+	<result property="aprvrDocCn" column="APRVR_DOC_CN"/>
+	<result property="atchfileSn" column="ATCHFILE_SN"/>
+	<result property="aprvrSttsCd" column="APRVR_STTS_CD"/>
+	<result property="empId" column="EMP_ID"/>
+	<result property="writer" column="WRITER"/>
+	<result property="writerDept" column="writer_dept"/>
+	<result property="aprvrWrtYmd" column="APRVR_WRT_YMD"/>
+	<result property="strWrtYmd" column="strWrtYmd"/>
+	<result property="atCd" column="AT_CD"/>
+	<result property="atNm" column="AT_NM"/>
+	<result property="aprvrEmgyn" column="APRVR_EMGYN"/>
+	<collection property="approvalLineList" resultMap="approvalLineMap"></collection>
+	<collection property="corbonCopyList" resultMap="corbonCopyListMap"></collection>
+	<collection property="relatedApprovalList" resultMap="relatedApprovalMap"></collection>
+	<collection property="fileList" resultMap="fileListMap"></collection>
+</resultMap>
+
+<resultMap type="com.groovit.groupware.vo.ApprovalLineVO" id="approvalLineMap">
+	<result property="alSn" column="AL_SN"/>
+	<result property="alAutzrNm" column="AL_AUTZR_NM"/>
+	<result property="approver" column="APPROVER"/>
+	<result property="approverDept" column="approver_dept"/>
+	<result property="approverJob" column="approver_job"/>
+	<result property="aprvrDocNo" column="APRVR_DOC_NO"/>
+	<result property="alSeq" column="AL_SEQ"/>
+	<result property="alDcrdYn" column="AL_DCRD_YN"/>
+	<result property="alStts" column="AL_STTS"/>
+	<result property="status" column="STATUS"/>
+	<result property="alCm" column="AL_CM"/>
+	<result property="alCmptnYmd" column="AL_CMPTN_YMD"/>
+	<result property="strAlYmd" column="stralymd"/>
+</resultMap>
+
+<resultMap type="com.groovit.groupware.vo.ApprovalCorbonCopyVO" id="corbonCopyListMap">
+	<result property="accCc" column="ACC_CC"/>
+	<result property="corbon" column="corbon"/>
+	<result property="corbonDept" column="CORBON_DEPT"/>
+	<result property="corbonJob" column="CORBON_JOB"/>
+	<result property="aprvrDocNo" column="APRVR_DOC_NO"/>
+	<result property="accUseyn" column="ACC_USEYN"/>
+	<result property="accIdntyDt" column="ACC_IDNTY_DT"/>
+</resultMap>
+
+<resultMap type="atchfileDetailVO" id="fileListMap">
+	<result property="atchfileDetailSn" column="ATCHFILE_DETAIL_SN"/>
+	<result property="atchfileSn" column="ATCHFILE_SN"/>
+	<result property="atchfileDetailLgclfl" column="ATCHFILE_DETAIL_LGCLFL"/>
+	<result property="atchfileDetailPhyscl" column="ATCHFILE_DETAIL_PHYSCL"/>
+	<result property="atchfileDetailPhysclPath" column="ATCHFILE_DETAIL_PHYSCL_PATH"/>
+	<result property="atchfileDetailSize" column="ATCHFILE_DETAIL_SIZE"/>
+	<result property="atchfileDetailExtsn" column="ATCHFILE_DETAIL_EXTSN"/>
+	<result property="empId" column="EMP_ID"/>
+	<result property="atchfileDetailRegDt" column="ATCHFILE_DETAIL_REG_DT"/>
+	<result property="atchfileDetailYn" column="ATCHFILE_DETAIL_YN"/>
+	<result property="atchfileDelyn" column="ATCHFILE_DELYN"/>
+</resultMap>
+
+<resultMap type="com.groovit.groupware.vo.RelatedApprovalVO" id="relatedApprovalMap">
+	<result property="raNo" column="RA_NO"/>
+	<result property="aprvrDocNo" column="APRVR_DOC_NO"/>
+</resultMap>
+
+<select id="getAllList" resultMap="approvalMap" parameterType="com.groovit.groupware.vo.ApprovalVO">
+SELECT
+       approval.aprvr_doc_no,
+       approval.aprvr_doc_ttl,
+       approval.aprvr_doc_cn,
+       approval.atchfile_sn,
+       approval.aprvr_stts_cd,
+       approval.emp_id,
+       writer_emp.emp_nm AS writer,
+       writer_dept.dept_nm AS writer_dept,
+       approval.aprvr_wrt_ymd,
+       TO_CHAR(approval.aprvr_wrt_ymd, 'YYYY.MM.dd(DY) HH24:MI') AS strWrtYmd,
+       approval.at_cd,
+       approval_template.at_nm,
+       approval.aprvr_emgyn,
+       approval_line.al_sn,
+       approval_line.al_autzr_nm,
+       approver_emp.emp_nm AS approver,
+       approval_line.al_seq,
+       approval_line.al_dcrd_yn,
+       approval_line.al_stts,
+       approval_line.al_cm,
+       approval_line.al_cmptn_ymd
+FROM
+       approval
+LEFT OUTER JOIN employee writer_emp
+       ON writer_emp.emp_id = approval.emp_id
+LEFT OUTER JOIN department writer_dept
+       ON writer_dept.dept_cd = writer_emp.dept_cd -- 작성자의 부서 이름 조인
+INNER JOIN approval_line
+       ON approval.aprvr_doc_no = approval_line.aprvr_doc_no
+LEFT OUTER JOIN employee approver_emp
+       ON approver_emp.emp_id = approval_line.al_autzr_nm
+LEFT OUTER JOIN approval_template
+       ON approval_template.at_cd = approval.at_cd
+where approval.aprvr_doc_no in (
+    select P.aprvr_doc_no
+    from
+    (
+        select U.*, rownum as rnum
+        from
+        (
+            select aprvr_doc_no, APRVR_EMGYN
+             from approval
+             where APRVR_STTS_CD = 'A07'
+             and aprvr_doc_no in (
+                select aprvr_doc_no
+                from approval_line
+                where al_autzr_nm = #{empId}
+                and al_stts in ('A01', 'A04')
+            )
+            order by APRVR_EMGYN desc, APRVR_WRT_YMD desc
+        ) U
+    )P
+    where p.rnum between 1 and 6
+)
+ORDER BY  
+       approval.aprvr_emgyn DESC,
+       approval.APRVR_WRT_YMD desc,
+       approval_line.al_seq
+</select>
+
+<select id="getTemplate" resultType="com.groovit.groupware.vo.ApprovalTemplateVO">
+	SELECT
+	    at_cd
+	  , at_nm
+	  , at_cn
+	  , at_clsf_cd
+	  , at_use_yn
+	  , at_img
+	FROM
+	    approval_template
+	where
+	    at_cd = #{atCd}
+</select>
+
+<select id="detail" resultMap="approvalMap">
+	SELECT
+        approval.aprvr_doc_no
+      , approval.aprvr_doc_ttl
+      , approval.aprvr_doc_cn
+      , approval.atchfile_sn
+      , approval.aprvr_stts_cd
+      , approval.emp_id
+      , employee.emp_nm as writer
+      , writer_dept.dept_nm AS writer_dept
+      , approval.aprvr_wrt_ymd
+      , to_char(approval.aprvr_wrt_ymd, 'YYYY.MM.dd(DY) HH24:MI') as strWrtYmd
+      , approval.at_cd
+      , approval.aprvr_emgyn
+      , approval_template.at_nm
+      , approval_line.al_sn
+      , approval_line.al_autzr_nm
+      , approval_line.al_seq
+      , approval_line.al_dcrd_yn
+      , approval_line.al_stts
+      , approval_line.al_cm
+      , approval_line.al_cmptn_ymd
+      , to_char(approval_line.al_cmptn_ymd, 'YYYY.MM.dd(DY) HH24:MI') as strAlYmd
+      , emp_approval.emp_nm as approver
+      , approver_dept.dept_nm AS approver_dept
+      , approval_job.jbgd_nm AS approver_job
+      , emp_corbon.emp_nm as corbon
+      , approval_corbon_copy.acc_cc
+      , approval_corbon_copy.acc_useyn
+      , approval_corbon_copy.acc_idnty_dt
+      , corbon_dept.dept_nm AS corbon_dept
+      , corbon_job.jbgd_nm AS corbon_job
+      , atchfile_detail.atchfile_detail_lgclfl
+      , atchfile_detail.atchfile_detail_physcl_path
+      , atchfile_detail.atchfile_detail_size
+      , atchfile_detail.atchfile_sn
+      , atchfile_detail.atchfile_detail_sn
+      , atchfile_detail.atchfile_detail_extsn
+      , com_code_detail.com_code_detail_nm as status
+	FROM
+	    approval_line 
+	INNER JOIN approval
+	    ON (approval.aprvr_doc_no = approval_line.aprvr_doc_no)
+	LEFT OUTER JOIN employee
+	    ON (employee.emp_id = approval.emp_id)
+    LEFT OUTER JOIN department writer_dept
+       ON writer_dept.dept_cd = employee.dept_cd -- 작성자의 부서 이름 조인
+	LEFT OUTER JOIN approval_template
+	    ON (approval_template.at_cd = approval.at_cd)
+	LEFT OUTER JOIN employee emp_approval
+	    ON (emp_approval.emp_id = approval_line.al_autzr_nm)
+	LEFT OUTER JOIN department approver_dept
+	    ON approver_dept.dept_cd = emp_approval.dept_cd -- 결재자의 부서 이름 조인
+	LEFT OUTER JOIN JOB_GRADE approval_job
+        ON approval_job.jbgd_cd = emp_approval.jbgd_cd -- 결재자의 직급 조인
+	LEFT OUTER JOIN approval_corbon_copy
+	    ON (approval_corbon_copy.aprvr_doc_no = approval.aprvr_doc_no)
+	LEFT OUTER JOIN employee emp_corbon
+	    ON (emp_corbon.emp_id = approval_corbon_copy.acc_cc)
+    LEFT OUTER JOIN department corbon_dept
+	    ON corbon_dept.dept_cd = emp_corbon.dept_cd -- 참조자의 부서 이름 조인
+	LEFT OUTER JOIN JOB_GRADE corbon_job
+        ON corbon_job.jbgd_cd = emp_corbon.jbgd_cd -- 참조자의 직급 조인
+	LEFT OUTER JOIN atchfile_detail
+	    ON (atchfile_detail.atchfile_sn = approval.atchfile_sn)
+	LEFT OUTER JOIN com_code_detail
+	    ON (com_code_detail.com_code_detail = approval_line.al_stts)
+	WHERE
+	    approval.aprvr_doc_no = #{aprvrDocNo}
+	ORDER BY
+	    approval_line.al_seq
+</select>
+
+<select id="getFileTotal" resultType="int">
+	select 
+	    nvl(count(*),0)
+	from 
+	    atchfile_detail
+	where atchfile_sn = (
+	    select 
+	        atchfile_sn
+	    from approval
+	    where 
+	        aprvr_doc_no = #{aprvrDocNo}
+	)
+</select>
+
+<select id="getAllTemplate" resultType="orgChartVO">
+	SELECT
+	    COM_CODE_DETAIL as id
+	  , COM_CODE_DETAIL_NM as text
+	  , '#' parent
+	FROM
+	    COM_CODE_DETAIL
+	WHERE 
+	    COM_CODE='COM004'
+	    
+	UNION ALL
+	    select 
+	        at_cd as id
+	      , at_nm as text
+	      , at_clsf_cd parent
+	    FROM
+	        approval_template
+	    LEFT JOIN COM_CODE_DETAIL  
+	        on (approval_template.at_clsf_cd=COM_CODE_DETAIL.COM_CODE_DETAIL)
+</select>
+
+
+<update id="updateApprove">
+	UPDATE approval_line
+	set
+	    al_stts = 'A03',
+	    al_cmptn_ymd = sysdate
+	where
+	    aprvr_doc_no = #{aprvrDocNo}
+	    and al_autzr_nm = #{alAutzrNm}
+</update>
+
+<select id="existNext" resultType="int">
+	select count(al_sn)
+	from approval_line
+	where aprvr_doc_no = #{aprvrDocNo}
+	and al_seq = (
+	    select (al_seq+1)
+	    from approval_line
+	    where 
+	    aprvr_doc_no = #{aprvrDocNo}
+	    and al_autzr_nm = #{alAutzrNm}
+	)
+</select>
+
+<update id="nextApprovalUpdateStts">
+	UPDATE approval_line
+	set
+	    al_stts = 'A04'
+	where al_seq = (
+	    select al_seq+1
+	    from approval_line
+	    where
+	        aprvr_doc_no = #{aprvrDocNo}
+	        and al_autzr_nm = #{alAutzrNm}
+	)
+	and aprvr_doc_no = #{aprvrDocNo}
+</update>
+
+<update id="approvalDocUpdateStts">
+	update approval
+	set
+	    APRVR_STTS_CD = 'A08'
+	where 
+	    aprvr_doc_no = #{aprvrDocNo}
+</update>
+
+<update id="updateReject">
+	UPDATE approval_line
+	set
+	    al_stts = 'A02',
+	    al_cmptn_ymd = sysdate,
+	    al_cm = #{alCm}
+	where
+	    aprvr_doc_no = #{aprvrDocNo}
+	    and al_autzr_nm = #{alAutzrNm}
+</update>
+
+<update id="approvalDocUpdateReject">
+	update approval
+	set
+	    APRVR_STTS_CD = 'A02'
+	where 
+	    aprvr_doc_no = #{aprvrDocNo}
+</update>
+
+<select id="getWriteTotalByStts" parameterType="hashMap"  resultType="int">
+	select count(*)
+	from 
+		approval
+	where 
+		emp_id = #{empId}
+	<if test="stts == 'progress'">
+		and APRVR_STTS_CD = 'A07'
+	</if>
+	<if test="stts == 'all'">
+		and APRVR_STTS_CD in ('A02','A08')
+	</if>
+	<if test="stts == 'reject'">
+		and APRVR_STTS_CD = 'A02'
+	</if>
+	<if test="stts == 'approve'">
+		and APRVR_STTS_CD in 'A08'
+	</if>
+	<if test="stts == 'temp'">
+		and APRVR_STTS_CD in 'A00'
+	</if>
+	<if test="keyword != null and keyword != '' ">
+		and aprvr_doc_ttl LIKE '%' || #{keyword} || '%' 
+	</if>
+</select>
+
+<select id="getWriteListByStts" parameterType="hashMap" resultMap="approvalMap">
+	SELECT
+	       approval.aprvr_doc_no,
+	       approval.aprvr_doc_ttl,
+	       approval.aprvr_doc_cn,
+	       approval.atchfile_sn,
+	       approval.aprvr_stts_cd,
+	       approval.emp_id,
+	       writer_emp.emp_nm AS writer,
+	       writer_dept.dept_nm AS writer_dept,
+	       writer_job.jbgd_nm as writer_job,
+	       approval.aprvr_wrt_ymd,
+	       TO_CHAR(approval.aprvr_wrt_ymd, 'YYYY.MM.dd(DY) HH24:MI') AS strWrtYmd,
+	       approval.at_cd,
+	       approval_template.at_nm,
+	       approval.aprvr_emgyn,
+	       approval_line.al_sn,
+	       approval_line.al_autzr_nm,
+	       approver_emp.emp_nm AS approver,
+	       approval_line.al_seq,
+	       approval_line.al_dcrd_yn,
+	       approval_line.al_stts,
+	       approval_line.al_cm,
+	       approval_line.al_cmptn_ymd
+	FROM
+	       approval
+	LEFT OUTER JOIN employee writer_emp
+	       ON writer_emp.emp_id = approval.emp_id
+	LEFT OUTER JOIN department writer_dept
+	       ON writer_dept.dept_cd = writer_emp.dept_cd -- 작성자의 부서 이름 조인
+	LEFT OUTER JOIN job_grade writer_job
+	ON writer_job.jbgd_cd = writer_emp.jbgd_cd -- 작성자의 직급 이름 조인
+	INNER JOIN approval_line
+	       ON approval.aprvr_doc_no = approval_line.aprvr_doc_no
+	LEFT OUTER JOIN employee approver_emp
+	       ON approver_emp.emp_id = approval_line.al_autzr_nm
+	LEFT OUTER JOIN approval_template
+	       ON approval_template.at_cd = approval.at_cd
+	where approval.aprvr_doc_no in (            
+	    select P.aprvr_doc_no
+	    from
+	    (
+	        select U.*, rownum as rnum
+	        from
+	        (
+	            select aprvr_doc_no, APRVR_EMGYN
+	             from approval
+	             where emp_id = #{empId}
+	             <if test="stts == 'progress'">
+					and approval.aprvr_stts_cd = 'A07'
+				</if>
+				<if test="stts == 'all'">
+					and APRVR_STTS_CD in ('A02','A08')
+				</if>
+				<if test="stts == 'reject'">
+					and APRVR_STTS_CD = 'A02'
+				</if>
+				<if test="stts == 'approve'">
+					and APRVR_STTS_CD in 'A08'
+				</if> 
+				<if test="stts == 'temp'">
+					and APRVR_STTS_CD in 'A00'
+				</if>
+				<if test="keyword != null and keyword != '' ">
+					and aprvr_doc_ttl LIKE '%' || #{keyword} || '%' 
+				</if>
+	            order by APRVR_EMGYN desc, APRVR_WRT_YMD desc
+	        ) U
+	    )P
+	    where p.rnum between ((#{currentPage} * 6) - (6 - 1)) AND (#{currentPage} * 6)
+	)
+	order by APRVR_EMGYN desc, APRVR_WRT_YMD desc, al_seq
+
+</select>
+
+<select id="getApproveTotalByStts" resultType="int">
+	select count(*)
+	from
+	    approval_line
+	where 
+	    al_autzr_nm = #{empId}
+    and aprvr_doc_no in (
+       select aprvr_doc_no
+       from approval
+       where APRVR_STTS_CD != 'A00'
+       <if test="stts == 'request' || stts == 'pending'">
+       		and APRVR_STTS_CD != 'A02'
+       </if>
+       <if test="keyword != null and keyword != '' ">
+			and aprvr_doc_ttl LIKE '%' || #{keyword} || '%' 
+		</if>
+    )
+	<if test="stts == 'request'">
+		and al_stts = 'A04'
+	</if>  
+	<if test="stts == 'pending'">
+		and al_stts = 'A05'
+	</if>  
+	<if test="stts == 'history'">
+		and al_stts in ('A02', 'A03')
+	</if>  
+	<if test="stts == 'rejectHistory'">
+		and al_stts = 'A02'
+	</if>  
+	<if test="stts == 'approveHistory'">
+		and al_stts = 'A03'
+	</if>  
+</select>
+
+<select id="getApproveListByStts" resultMap="approvalMap">
+	SELECT
+	       approval.aprvr_doc_no,
+	       approval.aprvr_doc_ttl,
+	       approval.aprvr_doc_cn,
+	       approval.atchfile_sn,
+	       approval.aprvr_stts_cd,
+	       approval.emp_id,
+	       writer_emp.emp_nm AS writer,
+	       writer_dept.dept_nm AS writer_dept,
+	       writer_job.jbgd_nm as writer_job,
+	       approval.aprvr_wrt_ymd,
+	       TO_CHAR(approval.aprvr_wrt_ymd, 'YYYY.MM.dd(DY) HH24:MI') AS strWrtYmd,
+	       approval.at_cd,
+	       approval.aprvr_emgyn,
+	       approval_line.al_sn,
+	       approval_line.al_autzr_nm,
+	       approver_emp.emp_nm AS approver,
+	       approval_line.al_seq,
+	       approval_line.al_dcrd_yn,
+	       approval_line.al_stts,
+	       approval_line.al_cm,
+	       approval_line.al_cmptn_ymd
+	FROM
+	       approval
+	LEFT OUTER JOIN employee writer_emp
+	       ON writer_emp.emp_id = approval.emp_id
+	LEFT OUTER JOIN department writer_dept
+	       ON writer_dept.dept_cd = writer_emp.dept_cd -- 작성자의 부서 이름 조인
+	LEFT OUTER JOIN job_grade writer_job
+	ON writer_job.jbgd_cd = writer_emp.jbgd_cd -- 작성자의 직급 이름 조인
+	INNER JOIN approval_line
+	       ON approval.aprvr_doc_no = approval_line.aprvr_doc_no
+	LEFT OUTER JOIN employee approver_emp
+	       ON approver_emp.emp_id = approval_line.al_autzr_nm
+	where approval.aprvr_doc_no in (
+	    select P.aprvr_doc_no
+	        from
+	        (
+	            select U.*, rownum as rnum
+	            from
+	            (
+	                select aprvr_doc_no, APRVR_EMGYN
+	                 from approval
+	                 where APRVR_STTS_CD != 'A00'
+	                 <if test="stts == 'request' || stts == 'pending'">
+		      			and APRVR_STTS_CD != 'A02'
+		    		</if>
+		    		<if test="keyword != null and keyword != '' ">
+						and aprvr_doc_ttl LIKE '%' || #{keyword} || '%' 
+					</if>
+	                 and aprvr_doc_no in (
+	                    select aprvr_doc_no
+	                    from approval_line
+	                    where al_autzr_nm = #{empId}
+	                    <if test="stts == 'request'">
+							and al_stts = 'A04'
+						</if>  
+						<if test="stts == 'pending'">
+							and al_stts = 'A05'
+						</if>  
+						<if test="stts == 'history'">
+							and al_stts in ('A02', 'A03')
+						</if>  
+						<if test="stts == 'rejectHistory'">
+							and al_stts = 'A02'
+						</if>  
+						<if test="stts == 'approveHistory'">
+							and al_stts = 'A03'
+						</if>  
+	                )
+	                order by APRVR_EMGYN desc, APRVR_WRT_YMD desc
+	            ) U
+	        )P
+	    where p.rnum between ((#{currentPage} * 6)-(6 - 1)) AND (#{currentPage} * 6)
+	    )
+	order by APRVR_EMGYN desc, APRVR_WRT_YMD desc, al_seq
+</select>
+
+<insert id="approveSubmit">
+	<selectKey resultType="String" order="BEFORE" keyProperty="aprvrDocNo">
+		select 'Groovit-' || to_char(sysdate, 'yyyyMMDD') || '-' 
+				|| trim(to_char(nvl(max(
+					substr(aprvr_doc_no, instr('Groovit-20240531-001', '-', -1)+1))+1,1), '000'))
+		from approval
+		where substr(aprvr_doc_no, 9, 8) = to_char(sysdate, 'yyyyMMDD')
+	</selectKey>
+	
+	INSERT INTO approval (
+	    aprvr_doc_no
+	    , aprvr_doc_ttl
+	    , aprvr_doc_cn
+	    , atchfile_sn
+	    , aprvr_stts_cd
+	    , emp_id
+	    , aprvr_wrt_ymd
+	    , at_cd
+	    , aprvr_emgyn
+	) VALUES (
+	    #{aprvrDocNo}
+	  , #{aprvrDocTtl}
+	  , #{aprvrDocCn}
+	  , #{atchfileSn}
+	  , #{aprvrSttsCd}
+	  , #{empId}
+	  , sysdate
+	  , #{atCd}
+	  , #{aprvrEmgyn}
+	)
+</insert>
+
+<insert id="setApprovalLine">
+	<selectKey resultType="String" order="BEFORE" keyProperty="alSn">
+		select 'AL'||trim(to_char(nvl(substr(max(al_sn),3),0)+1, '000'))
+		from APPROVAL_LINE
+	</selectKey>
+	
+	INSERT INTO approval_line (
+	    al_sn
+	    , al_autzr_nm
+	    , aprvr_doc_no
+	    , al_seq
+	    , al_stts
+	<if test="alSeq == 1">
+	    , al_cmptn_ymd
+	</if>    
+	) VALUES (
+	    #{alSn}
+	  , #{alAutzrNm}
+	  , #{aprvrDocNo}
+	  , #{alSeq}
+	  , #{alStts}
+  	<if test="alSeq == 1">
+	  , sysdate
+	</if>  
+	)
+</insert>
+
+<insert id="setCorbonCopy">
+	INSERT INTO approval_corbon_copy (
+	    acc_cc
+	    , aprvr_doc_no
+	) VALUES (
+	    #{accCc}
+	  , #{aprvrDocNo}
+	)
+</insert>
+
+<select id="getCCTotalByStts" resultType="int">
+	select count(*)
+	from approval_corbon_copy
+	where acc_cc = #{empId}
+	and aprvr_doc_no in (
+	    select aprvr_doc_no
+	    from approval
+	    where aprvr_stts_cd = 'A08'
+	    <if test="keyword != null and keyword != '' ">
+			and aprvr_doc_ttl LIKE '%' || #{keyword} || '%' 
+		</if>
+	)
+	<if test="stts == 'unchecked'">
+		and ACC_USEYN = 'N' 
+	</if>
+	<if test="stts == 'checked'">
+		and ACC_USEYN = 'Y' 
+	</if>
+	
+</select>
+
+<select id="getCCListByStts" resultMap="approvalMap">
+	WITH U AS(
+	    SELECT DENSE_RANK() OVER (ORDER BY aprvr_emgyn DESC, aprvr_doc_no) AS RNUM
+	                ,  T.*
+	    FROM(
+	        SELECT
+	               approval.aprvr_doc_no,
+	               approval.aprvr_doc_ttl,
+	               approval.aprvr_doc_cn,
+	               approval.atchfile_sn,
+	               approval.aprvr_stts_cd,
+	               approval.emp_id,
+	               writer_emp.emp_nm AS writer,
+	               writer_dept.dept_nm AS writer_dept,
+	               writer_job.jbgd_nm as writer_job,
+	               approval.aprvr_wrt_ymd,
+	               TO_CHAR(approval.aprvr_wrt_ymd, 'YYYY.MM.dd(DY) HH24:MI') AS strWrtYmd,
+	               approval.at_cd,
+	               approval.aprvr_emgyn,
+	               approval_line.al_sn,
+	               approval_line.al_autzr_nm,
+	               approver_emp.emp_nm AS approver,
+	               approval_line.al_seq,
+	               approval_line.al_dcrd_yn,
+	               approval_line.al_stts,
+	               approval_line.al_cm,
+	               approval_line.al_cmptn_ymd,
+                   DENSE_RANK() OVER (PARTITION BY approval.aprvr_doc_no ORDER BY approval_line.al_seq) AS doc_rnum
+	        FROM
+	               approval
+	        LEFT OUTER JOIN employee writer_emp
+	               ON writer_emp.emp_id = approval.emp_id
+	        LEFT OUTER JOIN department writer_dept
+	               ON writer_dept.dept_cd = writer_emp.dept_cd -- 작성자의 부서 이름 조인
+	        LEFT OUTER JOIN job_grade writer_job
+	        ON writer_job.jbgd_cd = writer_emp.jbgd_cd -- 작성자의 직급 이름 조인
+	        INNER JOIN approval_line
+	               ON approval.aprvr_doc_no = approval_line.aprvr_doc_no
+	        LEFT OUTER JOIN employee approver_emp
+	               ON approver_emp.emp_id = approval_line.al_autzr_nm
+	        WHERE 
+                approval.aprvr_doc_no in (
+                    select APRVR_DOC_NO
+                    from
+                        APPROVAL_CORBON_COPY
+                    where acc_cc = #{empId}
+                    <if test="stts == 'unchecked'">
+						and ACC_USEYN = 'N' 
+					</if>
+					<if test="stts == 'checked'">
+						and ACC_USEYN = 'Y' 
+					</if>
+                )
+            and aprvr_stts_cd = 'A08'
+            <if test="keyword != null and keyword != '' ">
+				and aprvr_doc_ttl LIKE '%' || #{keyword} || '%' 
+			</if>
+	        ORDER BY  
+	               approval.aprvr_emgyn DESC,
+	               approval.aprvr_doc_no,
+	               approval_line.al_seq
+	        ) T
+	    )
+	SELECT  U.*
+	FROM    U
+	WHERE   U.RNUM BETWEEN ((#{currentPage} * 6)-(6 - 1)) AND (#{currentPage} * 6)
+</select>
+
+<select id="getDocument" resultMap="approvalMap">
+	SELECT
+	    approval.aprvr_doc_no
+	  , approval.aprvr_doc_ttl
+	  , approval.aprvr_doc_cn
+	  , approval.atchfile_sn
+	  , approval.aprvr_stts_cd
+	  , approval.emp_id
+	  , approval.aprvr_wrt_ymd
+	  , approval.at_cd
+	  , approval.aprvr_emgyn
+	  , employee.emp_nm as writer
+	  , approval_template.at_nm
+	FROM
+	    approval
+	LEFT OUTER JOIN employee
+	    ON (approval.emp_id = employee.emp_id)
+	LEFT OUTER JOIN approval_template
+	    ON (approval_template.at_cd = approval.at_cd)
+	WHERE
+	    aprvr_stts_cd = 'A08'
+	<if test="keyword != null and keyword != ''">
+		and aprvr_doc_ttl LIKE '%' || #{keyword} || '%'
+	</if>
+</select>
+
+<insert id="setRelatedApproval">
+	INSERT INTO related_approval (
+	    ra_no
+	    , aprvr_doc_no
+	) VALUES (
+	    #{raNo}
+	  , #{aprvrDocNo}
+	)
+</insert>
+
+<update id="updateCC">
+	UPDATE approval_corbon_copy
+	SET
+	    acc_useyn = 'Y',
+	    acc_idnty_dt = sysdate
+	WHERE
+	    acc_cc = #{accCc}
+	and aprvr_doc_no = #{aprvrDocNo}
+	and acc_useyn = 'N'
+</update>
+
+<select id="getRelatedApproval" resultType="com.groovit.groupware.vo.RelatedApprovalVO">
+	SELECT
+	    related_approval.ra_no
+	  , related_approval.aprvr_doc_no
+	  , approval.aprvr_doc_ttl as raTitle
+	FROM
+	    related_approval
+	left outer join approval
+	    on (related_approval.ra_no = approval.aprvr_doc_no)
+	where related_approval.aprvr_doc_no = #{aprvrDocNo}
+</select>
+
+<select id="getLastWeekStatic" resultType="map">
+	SELECT days.weekday, NVL(A.count, 0) AS count
+	FROM (
+	    SELECT TO_CHAR(SYSDATE-7 + LEVEL, 'DY') AS weekday,
+	    TO_CHAR(SYSDATE-7 + LEVEL, 'YY/mm/dd') As dateStr
+	    FROM DUAL
+	    CONNECT BY LEVEL <![CDATA[ <= ]]> 7
+	) days
+	LEFT JOIN (
+	    SELECT TO_CHAR(aprvr_wrt_ymd, 'DY') AS weekday, COUNT(*) AS count
+	    FROM approval
+	    WHERE aprvr_wrt_ymd BETWEEN SYSDATE - 7 AND SYSDATE
+	    GROUP BY TO_CHAR(aprvr_wrt_ymd, 'DY')
+	) A 
+	ON days.weekday = A.weekday
+	order by days.dateStr 
+</select>
+
+<select id="checkTemp" resultType="int">
+	select count(*)
+	from approval
+	where aprvr_doc_no = #{aprvrDocNo}
+	and aprvr_stts_cd = 'A00'
+</select>
+
+<update id="update">
+	UPDATE approval
+	SET
+	    APRVR_DOC_TTL = #{aprvrDocTtl},
+	    APRVR_DOC_CN = #{aprvrDocCn},
+	    ATCHFILE_SN = #{atchfileSn},
+	    APRVR_STTS_CD = #{aprvrSttsCd},
+	    APRVR_WRT_YMD = sysdate,
+	    APRVR_EMGYN = #{aprvrEmgyn} 
+	WHERE
+	        aprvr_doc_no = #{aprvrDocNo}
+</update>
+
+<delete id="deleteAl">
+	DELETE FROM approval_line
+	WHERE
+	    aprvr_doc_no = #{aprvrDocNo}
+</delete>
+
+<delete id="deleteCc">
+	DELETE FROM approval_corbon_copy
+	WHERE
+	    aprvr_doc_no = #{aprvrDocNo}
+</delete>
+
+<delete id="deleteRel">
+	DELETE FROM RELATED_APPROVAL
+	WHERE
+	    aprvr_doc_no = #{aprvrDocNo}
+</delete>
+
+<update id="approveCancel">
+	UPDATE approval
+	SET
+	    APRVR_STTS_CD = 'A00',
+	    aprvr_wrt_ymd = sysdate
+	WHERE
+	        aprvr_doc_no = #{aprvrDocNo}
+</update>
+</mapper>

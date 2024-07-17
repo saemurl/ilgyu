@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="scheduleCalendar">
+
+	<select id="list" parameterType="String" resultType="com.groovit.groupware.vo.ScheduleCalendarVO">
+	SELECT
+		ID,
+		SCHDL_CD,
+		EMP_ID,
+		DESCRIPTION,
+		TITLE,
+		"START",
+		"END",
+		ALLDAY,
+		COLOR,
+		DEPT_NM,
+		LOCATION
+		FROM
+		SCHEDULE_CALENDAR
+		WHERE
+		(
+		COLOR = '#7367f0' AND EMP_ID = #{empId}
+		)
+		OR
+		(
+		COLOR = '#28c76f'
+		)
+		OR
+		(
+		COLOR = '#ff9f43' AND (
+            DEPT_NM = (
+                select DEPT_NM from DEPARTMENT
+                where DEPT_CD = (select d.dept_up_cd from employee e, DEPARTMENT d
+                where emp_id= #{empId}
+                and e.dept_cd = d.dept_cd)
+            ) OR DEPT_NM IS NULL
+        )
+		)
+		ORDER BY
+		"START" ASC
+	</select>
+
+	<select id="filteredList" parameterType="java.util.Map" resultType="com.groovit.groupware.vo.ScheduleCalendarVO">
+		SELECT
+        ID,
+        SCHDL_CD,
+        EMP_ID,
+        DESCRIPTION,
+        TITLE,
+        "START",
+        "END",
+        ALLDAY,
+        COLOR,
+        DEPT_NM,
+        LOCATION
+    	FROM
+        SCHEDULE_CALENDAR
+    	WHERE
+        (
+            (COLOR = '#7367f0' AND EMP_ID = #{empId})
+            OR (COLOR = '#28c76f')
+            OR (COLOR = '#ff9f43' AND (
+                DEPT_NM = (
+                    select DEPT_NM from DEPARTMENT
+	                where DEPT_CD = (select d.dept_up_cd from employee e, DEPARTMENT d
+	                where emp_id= #{empId}
+	                and e.dept_cd = d.dept_cd)
+                ) OR DEPT_NM IS NULL
+            ))
+        )
+        AND
+        COLOR IN
+        <foreach collection="colors" item="color" open="("
+            separator="," close=")">
+            #{color}
+        </foreach>
+    	ORDER BY
+        "START" ASC
+	</select>
+
+	<select id="getDepartments" parameterType="String" resultType="com.groovit.groupware.vo.DepartmentVO">
+		SELECT
+		    DEPT_NM
+		FROM
+		    DEPARTMENT
+		WHERE
+		    DEPT_CD = (
+		        SELECT
+		            DEPT_UP_CD
+		        FROM
+		            DEPARTMENT
+		        WHERE
+		            DEPT_CD = (
+		                SELECT
+		                    DEPT_CD
+		                FROM
+		                    EMPLOYEE
+		                WHERE
+		                    EMP_ID = #{empId}
+		            )
+		    )
+	</select>
+
+	<select id="getlocations" resultType="com.groovit.groupware.vo.MeetingRoomVO">
+		SELECT
+		MTGR_NM
+		FROM
+		MEETINGROOM
+	</select>
+
+	<insert id="create" parameterType="com.groovit.groupware.vo.ScheduleCalendarVO" useGeneratedKeys="true" keyProperty="id">
+		<selectKey keyProperty="id" resultType="int" order="BEFORE">
+			SELECT COALESCE(MAX(ID), 0) + 1 FROM SCHEDULE_CALENDAR
+		</selectKey>
+
+		INSERT INTO SCHEDULE_CALENDAR (
+		ID,
+		SCHDL_CD,
+		EMP_ID,
+		DESCRIPTION,
+		TITLE,
+		"START",
+		<if test="end != null">
+			"END",
+		</if>
+		ALLDAY,
+		COLOR,
+		<if test="deptNm != null">
+			DEPT_NM,
+		</if>
+		LOCATION
+		) VALUES (
+		#{id},
+		'SC001',
+		#{empId},
+		#{description},
+		#{title},
+		#{start},
+		<if test="end != null">
+			#{end},
+		</if>
+		#{allday},
+		#{color},
+		<if test="deptNm != null">
+			#{deptNm},
+		</if>
+		#{location}
+		)
+	</insert>
+
+
+	<update id="update" parameterType="com.groovit.groupware.vo.ScheduleCalendarVO">
+		UPDATE SCHEDULE_CALENDAR
+		SET
+		SCHDL_CD = 'SC001',
+		EMP_ID = #{empId},
+		DESCRIPTION = #{description},
+		TITLE = #{title},
+		"START" = #{start},
+		<if test="end != null">
+			"END" = #{end},
+		</if>
+		ALLDAY = #{allday},
+		COLOR = #{color},
+		<if test="deptNm != null">
+			DEPT_NM = #{deptNm},
+		</if>
+		<if test="deptNm == null">
+			DEPT_NM = null,
+		</if>
+		LOCATION = #{location}
+		WHERE
+		ID = #{id}
+	</update>
+
+	<delete id="delete" parameterType="com.groovit.groupware.vo.ScheduleCalendarVO">
+		DELETE FROM SCHEDULE_CALENDAR
+		WHERE
+		ID = #{id}
+	</delete>
+
+	<select id="employee" parameterType="String" resultType="com.groovit.groupware.vo.EmployeeVO">
+		SELECT
+	    emp_id
+	  , emp_pass
+	  , emp_mng
+	  , atchfile_sn
+	  , emp_stts
+	  , emp_nm
+	  , emp_mail
+	  , emp_eml
+	  , emp_telno
+	  , emp_addr
+	  , emp_daddr
+	  , emp_brdt
+	  , emp_jncmp_ymd
+	  , dept_cd
+	  , jbgd_cd
+		FROM
+	    employee
+	WHERE
+	    emp_id = #{empId}
+	</select>
+
+	<select id="todoListAjax" parameterType="String" resultType="com.groovit.groupware.vo.ScheduleCalendarVO">
+		SELECT
+		    id,
+		    schdl_cd,
+		    emp_id,
+		    description,
+		    title,
+		    "START",
+		    "END",
+		    allday,
+		    color,
+		    dept_nm,
+		    location
+		FROM
+		    SCHEDULE_CALENDAR
+		WHERE
+		    TRUNC(SYSDATE) BETWEEN TRUNC("START") AND TRUNC("END")
+		    AND (
+		        (color = '#28c76f') OR
+		        (color = '#ff9f43' AND dept_nm = (select DEPT_NM from DEPARTMENT
+                where DEPT_CD = (select d.dept_up_cd from employee e, DEPARTMENT d
+                where emp_id=#{empId}
+                and e.dept_cd = d.dept_cd))) or
+                ((emp_id = #{empId}) and color ='#7367f0')
+		    )
+		    ORDER BY color DESC
+	</select>
+
+	<select id="deptEmpList" parameterType="String" resultType="com.groovit.groupware.vo.EmployeeVO">
+		SELECT EMP_ID 
+		FROM EMPLOYEE 
+		WHERE DEPT_CD IN (
+		    SELECT DEPT_CD 
+		    FROM DEPARTMENT 
+		    WHERE DEPT_UP_CD IN (
+		        SELECT DEPT_CD 
+		        FROM DEPARTMENT 
+		        WHERE DEPT_NM = #{deptNmValue}
+		    )
+		)
+	</select>
+
+</mapper>

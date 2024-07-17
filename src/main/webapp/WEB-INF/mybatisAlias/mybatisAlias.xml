@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+  PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<!-- 
+	[마이바티스] 스프링에서 "_"를 사용한 컬럼명을 사용 시(BOOK 테이블의 BOOK_ID)
+	카멜케이스로 읽어줌(bookId), INSERT_DATE => insertDate
+	ex) 테이블 컬러명이 member_id인 경우 jsp화면단에서 이 값을 사용 시 memberId로 사용
+	-->
+	<settings>
+		<setting name="mapUnderscoreToCamelCase" value="true"/>
+		<setting name="jdbcTypeForNull" value="VARCHAR"/>
+	</settings>
+	<!-- 자주 사용하는 타입의 별칭을 세팅 -->
+	<typeAliases>
+<!-- 		<typeAlias type="kr.or.ddit.vo.BookVO" alias="bookVO" /> -->
+		<typeAlias type="com.groovit.groupware.vo.OrgChartVO" alias="orgChartVO" />
+		<typeAlias type="com.groovit.groupware.vo.EmployeeVO" alias="employeeVO" />
+		<typeAlias type="com.groovit.groupware.vo.DepartmentVO" alias="departmentVO" />
+		<typeAlias type="com.groovit.groupware.vo.JobGradeVO" alias="jobGradeVO" />
+		<typeAlias type="com.groovit.groupware.vo.EmployeeAuthrtVO" alias="employeeAuthrtVO" />
+		<typeAlias type="com.groovit.groupware.vo.AtchfileVO" alias="atchfileVO" />
+		<typeAlias type="com.groovit.groupware.vo.AtchfileDetailVO" alias="atchfileDetailVO" />
+		<typeAlias type="com.groovit.groupware.vo.MailVO" alias="mailVO" />
+		<typeAlias type="com.groovit.groupware.vo.MailSenderVO" alias="mailSenderVO" />
+		<typeAlias type="com.groovit.groupware.vo.MailReceiver" alias="mailReceiverVO" />
+		<typeAlias type="com.groovit.groupware.vo.TodoVO" alias="TodoVO" />
+		<typeAlias type="com.groovit.groupware.vo.EventBoardVO" alias="eventBoardVO"  />
+		<typeAlias type="com.groovit.groupware.vo.DataFileVO" alias="DataFileVO"  />
+		<typeAlias type="com.groovit.groupware.vo.DataRoomVO" alias="DataRoomVO"  />
+		<typeAlias type="com.groovit.groupware.vo.FolderVO" alias="FolderVO"  />
+		<typeAlias type="com.groovit.groupware.vo.ApplicantsVO" alias="applicantsVO" />
+		<typeAlias type="com.groovit.groupware.vo.InterviewsVO" alias="interviewsVO" />
+		<typeAlias type="com.groovit.groupware.vo.MailBookmarkVO" alias="mailBookmarkVO" />
+	</typeAliases>
+	
+	
+</configuration>
+
+

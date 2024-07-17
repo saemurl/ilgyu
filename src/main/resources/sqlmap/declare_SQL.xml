@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="declare">
+
+
+	<select id="declareBoardList" resultType="hashMap">
+	SELECT 
+	    d.DCLR_NO,
+	    d.EMP_ID,
+	    e1.EMP_NM AS DECLARER_EMP_NM, -- d.EMP_ID에 해당하는 EMP_NM
+	    d.DCLR_TYPE,
+	    d.DCLR_STTS,
+	    d.FB_NO,
+	    TO_CHAR(d.DCLR_DATE, 'YY/MM/DD') AS DCLR_DATE,
+	    f.FB_TTL,
+	    f.FB_CN,
+	    f.ATCHFILE_SN,
+	    TO_CHAR(f.FB_FRST_REG_DT, 'YY/MM/DD') AS FB_FRST_REG_DT,
+	    f.FB_FRST_WRTR,
+	    e2.EMP_NM AS FB_FRST_WRTR_EMP_NM, -- f.FB_FRST_WRTR에 해당하는 EMP_NM
+	    TO_CHAR(f.FB_LAST_MDFCN_DT, 'YY/MM/DD') AS FB_LAST_MDFCN_DT,
+	    f.FB_LAST_RGTR,
+	    f.FB_LIKE_CNT,
+	    f.FB_DISLLIKE_CNT,
+	    f.FB_STTS,
+	    f.FB_CNT
+	FROM 
+	    DECLARATION_BOARD d
+	JOIN 
+	    FREE_BOARD f
+	ON 
+	    d.FB_NO = f.FB_NO
+	JOIN 
+	    EMPLOYEE e1
+	ON 
+	    d.EMP_ID = e1.EMP_ID
+	JOIN 
+	    EMPLOYEE e2
+	ON 
+	    f.FB_FRST_WRTR = e2.EMP_ID
+	ORDER BY 
+    	d.DCLR_DATE DESC
+	
+	</select>
+
+	<select id="declareBoardDetail" parameterType="String" resultType="hashMap">
+		SELECT 
+		    d.DCLR_NO,
+		    d.EMP_ID,
+		    e1.EMP_NM AS DECLARER_EMP_NM,
+		    d.DCLR_TYPE,
+		    d.DCLR_STTS,
+		    d.FB_NO,
+		    TO_CHAR(d.DCLR_DATE, 'YY/MM/DD') AS DCLR_DATE,
+		    f.FB_TTL,
+		    f.FB_CN,
+		    f.ATCHFILE_SN,
+		    TO_CHAR(f.FB_FRST_REG_DT, 'YY/MM/DD') AS FB_FRST_REG_DT,
+		    f.FB_FRST_WRTR,
+		    e2.EMP_NM AS FB_FRST_WRTR_EMP_NM,
+		    TO_CHAR(f.FB_LAST_MDFCN_DT, 'YY/MM/DD') AS FB_LAST_MDFCN_DT,
+		    f.FB_LAST_RGTR,
+		    f.FB_LIKE_CNT,
+		    f.FB_DISLLIKE_CNT,
+		    f.FB_STTS,
+		    f.FB_CNT
+		FROM 
+		    DECLARATION_BOARD d
+		JOIN 
+		    FREE_BOARD f
+		ON 
+		    d.FB_NO = f.FB_NO
+		JOIN 
+		    EMPLOYEE e1
+		ON 
+		    d.EMP_ID = e1.EMP_ID
+		JOIN 
+		    EMPLOYEE e2
+		ON 
+		    f.FB_FRST_WRTR = e2.EMP_ID
+		WHERE
+		    d.DCLR_NO = #{dclrNo}  
+	</select>
+
+	<update id="declareBoardCnt" parameterType="hashMap">
+	  	UPDATE declaration_board
+		SET
+		    dclr_stts = #{dclrStts}
+		WHERE
+	        fb_no = #{fbNo}
+	</update>
+	
+	<update id="declarefreeBoardCnt">
+		UPDATE free_board
+		SET
+		    fb_stts = #{dclrStts}
+		WHERE
+		    fb_no = #{fbNo}
+	</update>
+
+	<select id="declareBoardCount" resultType="hashMap">
+		SELECT 
+		    TO_CHAR(DCLR_DATE, 'YYYY-MM') AS month,
+		    TO_CHAR(DCLR_DATE, 'MM') AS month_num,
+		    COUNT(*) AS declaration_count
+		FROM 
+		    DECLARATION_BOARD
+		GROUP BY 
+		    TO_CHAR(DCLR_DATE, 'YYYY-MM'),
+		    TO_CHAR(DCLR_DATE, 'MM')
+		ORDER BY 
+		    month
+	</select>
+
+	<select id="declareResultList" parameterType="hashMap" resultType="hashMap">
+	SELECT 
+		    d.DCLR_NO,
+		    d.EMP_ID,
+		    e1.EMP_NM AS DECLARER_EMP_NM,
+		    d.DCLR_TYPE,
+		    d.DCLR_STTS,
+		    d.FB_NO,
+		    TO_CHAR(d.DCLR_DATE, 'YY/MM/DD') AS DCLR_DATE,
+		    f.FB_TTL,
+		    f.FB_CN,
+		    f.ATCHFILE_SN,
+		    TO_CHAR(f.FB_FRST_REG_DT, 'YY/MM/DD') AS FB_FRST_REG_DT,
+		    f.FB_FRST_WRTR,
+		    e2.EMP_NM AS FB_FRST_WRTR_EMP_NM,
+		    TO_CHAR(f.FB_LAST_MDFCN_DT, 'YY/MM/DD') AS FB_LAST_MDFCN_DT,
+		    f.FB_LAST_RGTR,
+		    f.FB_LIKE_CNT,
+		    f.FB_DISLLIKE_CNT,
+		    f.FB_STTS,
+		    f.FB_CNT
+		FROM 
+		    DECLARATION_BOARD d
+		JOIN 
+		    FREE_BOARD f
+		ON 
+		    d.FB_NO = f.FB_NO
+		JOIN 
+		    EMPLOYEE e1
+		ON 
+		    d.EMP_ID = e1.EMP_ID
+		JOIN 
+		    EMPLOYEE e2
+		ON 
+		    f.FB_FRST_WRTR = e2.EMP_ID
+		WHERE
+		    d.DCLR_STTS = #{btnradioVal}  
+		ORDER BY 
+    		d.DCLR_DATE DESC
+	</select>
+	
+	
+	<select id="declareBoardCountTypeList" resultType="hashMap">
+	SELECT 
+    CASE 
+        WHEN DCLR_TYPE IN ('욕설,비방', '정치', '홍보,영리목적') THEN DCLR_TYPE
+        ELSE '기타'
+    END AS DCLR_TYPE,
+	    COUNT(*) AS declaration_count
+	FROM 
+	    DECLARATION_BOARD
+	GROUP BY 
+	    CASE 
+	        WHEN DCLR_TYPE IN ('욕설,비방', '정치', '홍보,영리목적') THEN DCLR_TYPE
+	        ELSE '기타'
+	    END
+	ORDER BY 
+	    DCLR_TYPE
+	
+	</select>
+
+
+
+
+
+
+
+	<select id="declareCommentList" resultType="hashMap">
+		SELECT
+		    cd.DC_NO,
+		    cd.EMP_ID AS DC_EMP_ID,
+		    e1.EMP_NM AS DC_EMP_NM,
+		    cd.DC_TYPE,
+		    cd.DC_STTS,
+		    TO_CHAR(cd.DC_DATE, 'YY/MM/DD') AS DC_DATE,
+		    cd.CMNT_NO,
+		    
+		    cm.CMNT_CONTENT,
+		    cm.EMP_ID AS CMNT_EMP_ID,
+		    e2.EMP_NM AS CMNT_NM,
+		    TO_CHAR(cm.CMNT_WRT_DT, 'YY/MM/DD') AS CMNT_WRT_DT,
+		    cm.CMNT_STTS,
+		    cm.FB_NO
+		    
+		FROM 
+		    COMMENT_DECLARATION cd
+		JOIN
+		    "COMMENT" cm
+		ON
+		    cd.CMNT_NO = cm.CMNT_NO
+		JOIN
+		    EMPLOYEE e1
+		ON
+		    cd.EMP_ID = e1.EMP_ID
+		JOIN
+		    EMPLOYEE e2
+		ON
+		    cm.EMP_ID = e2.EMP_ID
+		ORDER BY 
+		    cd.DC_DATE DESC
+	</select>
+
+
+	<select id="declareCommentCateList" parameterType="hashMap" resultType="hashMap">
+	SELECT
+	    cd.DC_NO,
+	    cd.EMP_ID AS DC_EMP_ID,
+	    e1.EMP_NM AS DC_EMP_NM,
+	    cd.DC_TYPE,
+	    cd.DC_STTS,
+	    TO_CHAR(cd.DC_DATE, 'YY/MM/DD') AS DC_DATE,
+	    cd.CMNT_NO,
+	    
+	    cm.CMNT_CONTENT,
+	    cm.EMP_ID AS CMNT_EMP_ID,
+	    e2.EMP_NM AS CMNT_NM,
+	    TO_CHAR(cm.CMNT_WRT_DT, 'YY/MM/DD') AS CMNT_WRT_DT,
+	    cm.CMNT_STTS,
+	    cm.FB_NO
+	    
+	FROM 
+	    COMMENT_DECLARATION cd
+	JOIN
+	    "COMMENT" cm
+	ON
+	    cd.CMNT_NO = cm.CMNT_NO
+	JOIN
+	    EMPLOYEE e1
+	ON
+	    cd.EMP_ID = e1.EMP_ID
+	JOIN
+	    EMPLOYEE e2
+	ON
+	    cm.EMP_ID = e2.EMP_ID
+	WHERE
+	    cm.CMNT_STTS = #{btnradioVal}
+	ORDER BY 
+	    cd.DC_DATE DESC
+	
+	</select>
+
+
+
+	<select id="declareCommentDetail" parameterType="String" resultType="hashMap">
+	SELECT
+	    cd.DC_NO,
+	    cd.EMP_ID AS DC_EMP_ID,
+	    e1.EMP_NM AS DC_EMP_NM,
+	    cd.DC_TYPE,
+	    cd.DC_STTS,
+	    TO_CHAR(cd.DC_DATE, 'YY/MM/DD') AS DC_DATE,
+	    cd.CMNT_NO,
+	    
+	    cm.CMNT_CONTENT,
+	    cm.EMP_ID AS CMNT_EMP_ID,
+	    e2.EMP_NM AS CMNT_NM,
+	    TO_CHAR(cm.CMNT_WRT_DT, 'YY/MM/DD') AS CMNT_WRT_DT,
+	    cm.CMNT_STTS,
+	    cm.FB_NO
+	    
+	FROM 
+	    COMMENT_DECLARATION cd
+	JOIN
+	    "COMMENT" cm
+	ON
+	    cd.CMNT_NO = cm.CMNT_NO
+	JOIN
+	    EMPLOYEE e1
+	ON
+	    cd.EMP_ID = e1.EMP_ID
+	JOIN
+	    EMPLOYEE e2
+	ON
+	    cm.EMP_ID = e2.EMP_ID
+	WHERE
+	    cd.DC_NO = 	#{dcNo}
+	
+	</select>
+	
+	
+	<update id="declareCommentCnt" parameterType="hashMap">
+        UPDATE comment_declaration
+		SET
+		    dc_stts = #{dclrStts}
+		WHERE
+		    cmnt_no = #{cmntNo}
+	</update>
+	
+	<update id="declareCommentSttsCnt" parameterType="hashMap">
+	  	UPDATE "COMMENT"
+		SET
+		    cmnt_stts = #{dclrStts}
+		WHERE
+	        cmnt_no = #{cmntNo}
+	</update>
+	
+	
+	<select id="declareCommentCount" resultType="hashMap">
+	 SELECT 
+		    TO_CHAR(DC_DATE, 'YYYY-MM') AS month,
+		    TO_CHAR(DC_DATE, 'MM') AS month_num,
+		    COUNT(*) AS declaration_comment_count
+		FROM 
+		    COMMENT_DECLARATION
+		GROUP BY 
+		    TO_CHAR(DC_DATE, 'YYYY-MM'),
+		    TO_CHAR(DC_DATE, 'MM')
+		ORDER BY 
+		    month
+	</select>
+	
+	<select id="declareCommentCountType" resultType="hashMap">
+		SELECT 
+    CASE 
+        WHEN DC_TYPE IN ('욕설,비방', '정치', '홍보,영리목적') THEN DC_TYPE
+        ELSE '기타'
+    END AS DC_TYPE,
+	    COUNT(*) AS COMMENT_DECLARATION_COUNT
+	FROM 
+	    COMMENT_DECLARATION
+	GROUP BY 
+	    CASE 
+	        WHEN DC_TYPE IN ('욕설,비방', '정치', '홍보,영리목적') THEN DC_TYPE
+	        ELSE '기타'
+	    END
+	ORDER BY 
+	    DC_TYPE
+	</select>
+
+</mapper>

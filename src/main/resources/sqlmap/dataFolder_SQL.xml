@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.groovit.groupware.mapper.DataFolderMapper">
+
+    <!-- 데이터 파일 결과 매핑 -->
+    <resultMap id="DataFileResultMap" type="com.groovit.groupware.vo.DataFileVO">
+        <id property="dfNo" column="DF_NO"/>
+        <result property="dfFilePath" column="DF_FILE_PATH"/>
+        <result property="dfUldDt" column="DF_ULD_DT"/>
+        <result property="dfOrgnlFileNm" column="DF_ORGNL_FILE_NM"/>
+        <result property="dfChgFileNm" column="DF_CHG_FILE_NM"/>
+        <result property="dfFileSz" column="DF_FILE_SZ"/>
+        <result property="dfFileStts" column="DF_FILE_STTS"/>
+        <result property="empId" column="EMP_ID"/>
+        <result property="dfExtn" column="DF_EXTN"/>
+        <result property="fdNo" column="FD_NO"/>
+        <result property="drNo" column="DR_NO"/>
+    </resultMap>
+
+    <!-- 폴더 결과 매핑 -->
+    <resultMap id="FolderResultMap" type="com.groovit.groupware.vo.FolderVO">
+        <id property="fdNo" column="FD_NO"/>
+        <result property="drNo" column="DR_NO"/>
+        <result property="fdNm" column="FD_NM"/>
+        <result property="fdUp" column="FD_UP"/>
+        <result property="empId" column="EMP_ID"/>
+    </resultMap>
+
+    <!-- 자료실 결과 매핑 -->
+    <resultMap id="DataRoomResultMap" type="com.groovit.groupware.vo.DataRoomVO">
+        <id property="drNo" column="DR_NO"/>
+        <result property="drNm" column="DR_NM"/>
+        <result property="drType" column="DR_TYPE"/>
+    </resultMap>
+    
+    
+    
+
+    <!-- 모든 파일 조회 -->
+    <select id="selectAllDataFiles" resultMap="DataFileResultMap">
+        SELECT DF_NO, DF_FILE_PATH, DF_ULD_DT, DF_ORGNL_FILE_NM, DF_CHG_FILE_NM, DF_FILE_SZ, DF_FILE_STTS, EMP_ID, DF_EXTN, FD_NO, DR_NO
+        FROM DATAFILE
+        ORDER BY DF_NO ASC
+    </select>
+
+    <!-- 모든 폴더 조회 -->
+    <select id="selectAllFolders" resultMap="FolderResultMap">
+        SELECT FD_NO, DR_NO, FD_NM, FD_UP, EMP_ID
+        FROM FOLDER
+        ORDER BY FD_NO ASC
+    </select>
+    <!-- 모든 자료실 조회 -->
+    <select id="selectAllDataRooms" resultMap="DataRoomResultMap">
+        SELECT DR_NO, DR_NM, DR_TYPE
+        FROM DATA_ROOM
+        ORDER BY DR_NO ASC
+    </select>
+
+    <!-- 폴더 추가 쿼리 -->
+    <insert id="insertFolder">
+        <selectKey keyProperty="fdNo" resultType="string" order="BEFORE">
+            SELECT 'FD' || LPAD(NVL(MAX(SUBSTR(FD_NO, 3)) + 1, 1), 3, '0') 
+            FROM FOLDER
+        </selectKey>
+        
+        INSERT INTO FOLDER (FD_NO, DR_NO, FD_NM, FD_UP, EMP_ID)
+        VALUES (#{fdNo}, #{drNo}, #{fdNm}, #{fdUp}, #{empId})
+    </insert>
+
+    <!-- 데이터 파일 추가 쿼리 -->
+    <insert id="insertDataFile" parameterType="com.groovit.groupware.vo.DataFileVO">
+        <selectKey keyProperty="dfNo" resultType="string" order="BEFORE">
+            SELECT 'DF' || LPAD(NVL(MAX(SUBSTR(DF_NO, 3)) + 1, 1), 3, '0') 
+            FROM DATAFILE
+        </selectKey>
+        
+        INSERT INTO DATAFILE (DF_NO, DF_FILE_PATH, DF_ULD_DT, DF_ORGNL_FILE_NM, DF_CHG_FILE_NM, DF_FILE_SZ, DF_FILE_STTS, EMP_ID, DF_EXTN, FD_NO, DR_NO)
+        VALUES (#{dfNo}, #{dfFilePath}, SYSDATE, #{dfOrgnlFileNm}, #{dfChgFileNm}, #{dfFileSz}, '0', #{empId}, #{dfExtn}, NVL(#{fdNo}, ''), #{drNo})
+    </insert>
+
+    <!-- 폴더 영구 삭제 쿼리 -->
+	<delete id="deleteFolderById">
+	    DELETE FROM FOLDER WHERE FD_NO = #{folderId}
+	</delete>
+
+    <!-- 파일 영구 삭제 쿼리 -->
+    <delete id="deleteDataFileById">
+        DELETE FROM DATAFILE WHERE DF_NO = #{fileId}
+    </delete>
+
+    <!-- 폴더 이름 변경 쿼리 -->
+    <update id="updateFolderName">
+        UPDATE FOLDER
+        SET FD_NM = #{fdNm}
+        WHERE FD_NO = #{fdNo}
+    </update>
+
+    <!-- 파일 이름 변경 쿼리 -->
+	<update id="updateFileName">
+	    UPDATE DATAFILE
+	    SET DF_ORGNL_FILE_NM = #{dfOrgnlFileNm}
+	    WHERE DF_NO = #{dfNo}
+	</update>
+
+    <!-- 폴더 ID로 폴더 조회 쿼리 -->
+    <select id="selectFolderById" resultMap="FolderResultMap">
+        SELECT FD_NO, DR_NO, FD_NM, FD_UP, EMP_ID
+        FROM FOLDER
+        WHERE FD_NO = #{folderId}
+    </select>
+
+    <!-- 자료실 번호로 폴더 조회 쿼리 -->
+    <select id="selectFoldersByDrNo" resultMap="FolderResultMap">
+        SELECT FD_NO, DR_NO, FD_NM, FD_UP, EMP_ID
+        FROM FOLDER
+        WHERE DR_NO = #{drNo}
+    </select>
+
+    <!-- 파일 ID로 데이터 파일 조회 쿼리 -->
+    <select id="selectDataFileById" resultMap="DataFileResultMap">
+        SELECT DF_NO, DF_FILE_PATH, DF_ULD_DT, DF_ORGNL_FILE_NM, DF_CHG_FILE_NM, DF_FILE_SZ, DF_FILE_STTS, EMP_ID, DF_EXTN, FD_NO, DR_NO
+        FROM DATAFILE
+        WHERE DF_NO = #{fileId}
+    </select>
+
+    <!-- 데이터 파일 업데이트 쿼리 -->
+    <update id="updateDataFile">
+        UPDATE DATAFILE
+        SET DR_NO = #{drNo}, DF_FILE_STTS = #{dfFileStts}, FD_NO = #{fdNo}
+        WHERE DF_NO = #{dfNo}
+    </update>
+    
+    <!-- 폴더 업데이트 쿼리 -->
+    <update id="updateFolder">
+        UPDATE FOLDER
+        SET DR_NO = #{drNo}, FD_UP = #{fdUp}
+        WHERE FD_NO = #{fdNo}
+    </update>
+
+    <!-- 파일을 휴지통으로 이동 -->
+    <update id="moveFileToTrash">
+        UPDATE DATAFILE
+        SET DR_NO = #{drNo}, DF_FILE_STTS = #{dfFileStts}, FD_NO = #{fdNo}
+        WHERE DF_NO = #{dfNo}
+    </update>
+
+    <!-- 폴더를 휴지통으로 이동 -->
+    <update id="moveFolderToTrash">
+        UPDATE FOLDER
+        SET DR_NO = #{drNo}, FD_UP = #{fdUp}
+        WHERE FD_NO = #{fdNo}
+    </update>
+    
+    <!-- 특정 휴지통에 있는 모든 파일 조회 쿼리 -->
+    <select id="selectTrashFiles" resultMap="DataFileResultMap">
+        SELECT DF_NO, DF_FILE_PATH, DF_ULD_DT, DF_ORGNL_FILE_NM, DF_CHG_FILE_NM, DF_FILE_SZ, DF_FILE_STTS, EMP_ID, DF_EXTN, FD_NO, DR_NO
+        FROM DATAFILE
+        WHERE DR_NO = #{trashFolderId}
+    </select>
+    
+    <!-- 특정 휴지통에 있는 모든 폴더 조회 쿼리 -->
+    <select id="selectTrashFolders" resultMap="FolderResultMap">
+        SELECT FD_NO, DR_NO, FD_NM, FD_UP, EMP_ID
+        FROM FOLDER
+        WHERE DR_NO = #{trashFolderId}
+    </select>
+    
+    <!-- 파일 크기 합계 -->
+    <select id="getTotalFileSize" resultType="long">
+        SELECT COALESCE(SUM(DF_FILE_SZ), 0) FROM DATAFILE
+    </select>
+
+	    
+</mapper>

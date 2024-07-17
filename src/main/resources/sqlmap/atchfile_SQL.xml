@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.groovit.groupware.mapper.AtchfileMapper">
+
+	<!--
+	atchFileVO
+	 -->
+	<insert id="insertAtchfile" parameterType="atchfileVO">
+		<selectKey resultType="String" order="BEFORE" keyProperty="atchfileSn">
+			SELECT NVL(SUBSTR(MAX(ATCHFILE_SN),1,2)
+		             ||  (TRIM(TO_CHAR(SUBSTR(MAX(ATCHFILE_SN),3)+1,'000'))),'AF001')
+		     FROM ATCHFILE
+		</selectKey>
+
+		INSERT INTO ATCHFILE(ATCHFILE_SN, ATCHFILE_ID, ATCHFILE_FRST_REG_DT, ATCHFILE_YN)
+		VALUES(#{atchfileSn},#{atchfileId},SYSDATE,'Y')
+	</insert>
+
+	<insert id="insertAtchfileDetail" parameterType="atchfileDetailVO">
+		INSERT INTO ATCHFILE_DETAIL(ATCHFILE_DETAIL_SN, ATCHFILE_SN, ATCHFILE_DETAIL_LGCLFL, ATCHFILE_DETAIL_PHYSCL
+		, ATCHFILE_DETAIL_PHYSCL_PATH, ATCHFILE_DETAIL_SIZE, ATCHFILE_DETAIL_EXTSN, EMP_ID, ATCHFILE_DETAIL_REG_DT, ATCHFILE_DETAIL_YN, ATCHFILE_DELYN)
+		VALUES(
+    	#{atchfileDetailSn},
+    	#{atchfileSn},#{atchfileDetailLgclfl},#{atchfileDetailPhyscl},#{atchfileDetailPhysclPath}
+    	,#{atchfileDetailSize},#{atchfileDetailExtsn},#{empId},sysdate,'Y','N')
+	</insert>
+	
+	<select id="getFileInfo" parameterType="hashMap" resultType="atchfileDetailVO">
+		SELECT
+		    atchfile_detail_sn
+		  , atchfile_sn
+		  , atchfile_detail_lgclfl
+		  , atchfile_detail_physcl
+		  , atchfile_detail_physcl_path
+		  , atchfile_detail_size
+		  , atchfile_detail_extsn
+		  , emp_id
+		  , atchfile_detail_reg_dt
+		  , atchfile_detail_yn
+		  , atchfile_delyn
+		FROM
+		    atchfile_detail
+		where atchfile_sn = #{atchfileSn}
+		and atchfile_detail_sn = #{atchfileDetailSn}
+	</select>
+</mapper>

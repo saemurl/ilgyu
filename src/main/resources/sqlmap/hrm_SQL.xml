@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="hrm">
+	<!-- 
+	//{"keyword": "","currentPage": 1,"deptUpCd": "X001","deptCd": "D005"}
+	//or
+	//{"keyword": "","currentPage": 1,"jbgdCd": "J006"}
+	 -->
+	<sql id="where">
+		<if test="jbgdCd!=null and jbgdCd!=''">
+			AND A.JBGD_CD = #{jbgdCd}
+		</if>
+		
+		<if test="deptCd!=null and deptCd!=''">
+			AND C.DEPT_UP_CD = #{deptUpCd}
+			AND A.DEPT_CD = #{deptCd}
+		</if>
+		
+		<if test="deptUpCd!=null and deptUpCd!=''">
+			AND C.DEPT_UP_CD = #{deptUpCd}
+		</if>
+	
+		<if test="keyword!=null and keyword!=''">
+			AND (EMP_NM LIKE '%' || #{keyword} || '%'
+			   OR C.DEPT_NM LIKE '%' || #{keyword} || '%' 
+			   OR B.JBGD_NM LIKE '%' || #{keyword} || '%'
+			   )
+		</if>
+	</sql>
+
+	<select id="jobSelect" resultType="jobGradeVO">
+		 <![CDATA[
+			SELECT JBGD_CD, JBGD_NM
+			FROM JOB_GRADE
+	        WHERE JBGD_NM <> '대표이사' AND JBGD_NM <> '사장' AND JBGD_NM <> '전무'
+        ]]>
+	</select>
+
+	<select id="deptlist" resultType="departmentVO" parameterType="String">
+		SELECT DEPT_CD, DEPT_UP_CD,
+		DEPT_NM, DEPT_USE_YN
+		FROM DEPARTMENT
+		WHERE DEPT_USE_YN = 'Y'
+		AND DEPT_NM LIKE '%팀%'
+        AND DEPT_UP_CD = #{deptUpCd}
+	</select>
+	
+	<select id="DeptList" resultType="departmentVO">
+		SELECT DEPT_CD, DEPT_UP_CD,
+		DEPT_NM, DEPT_USE_YN
+		FROM DEPARTMENT
+		WHERE DEPT_USE_YN = 'Y'
+		AND DEPT_NM
+		LIKE '%부%'
+	</select>
+	
+	
+
+	<insert id="createPost" parameterType="employeeVO">
+		INSERT INTO
+		EMPLOYEE(EMP_ID, EMP_PASS, EMP_NM, EMP_MAIL, EMP_TELNO, DEPT_CD,
+		EMP_BRDT, EMP_JNCMP_YMD)
+		VALUES(#{empId}, #{empPass}, #{empNm},
+		#{empMail}, #{empTelno}, #{deptCd}, #{empBrdt}, #{empJncmpYmd})
+	</insert>
+
+	<select id="empIdMax" resultType="String">
+		SELECT
+		TO_CHAR(MAX(TO_NUMBER(SUBSTR(EMP_ID, -4))) + 1, 'FM0000') AS EMP_ID
+		FROM EMPLOYEE
+	</select>
+	
+	<select id="getTotal" resultType="int" parameterType="hashMap">
+		SELECT COUNT(*)
+		FROM EMPLOYEE A, JOB_GRADE B, DEPARTMENT C
+		WHERE A.DEPT_CD = C.DEPT_CD 
+		AND A.JBGD_CD = B.JBGD_CD
+		<include refid="where"></include>
+	</select>
+
+	<resultMap type="employeeVO" id="employeeMap">
+		<result property="empId" column="EMP_ID" />
+		<result property="empPass" column="EMP_PASS" />
+		<result property="empMng" column="EMP_MNG" />
+		<result property="atchfileSn" column="ATCHFILE_SN" />
+		<result property="empStts" column="EMP_STTS" />
+		<result property="empNm" column="EMP_NM" />
+		<result property="empMail" column="EMP_MAIL" />
+		<result property="empEml" column="EMP_EML" />
+		<result property="empTelno" column="EMP_TELNO" />
+		<result property="empAddr" column="EMP_ADDR" />
+		<result property="empDaddr" column="EMP_DADDR" />
+		<result property="empBrdt" column="EMP_BRDT" />
+		<result property="empJncmpYmd" column="EMP_JNCMP_YMD" />
+		<result property="deptCd" column="DEPT_CD" />
+		<result property="jbgdCd" column="JBGD_CD" />
+		<result property="comCodeDetailNm" column="COM_CODE_DETAIL_NM" />
+		<collection property="jobGradeVO" resultMap="jobGradeMap"></collection>
+		<collection property="departmentVO" resultMap="deptMap"></collection>
+		<collection property="atchfileDetailVOList" resultMap="atchfileDetailMap"></collection>
+	</resultMap>
+
+	<resultMap type="com.groovit.groupware.vo.JobGradeVO"
+		id="jobGradeMap">
+		<result property="jbgdCd" column="JBGD_CD" />
+		<result property="jbgdNm" column="JBGD_NM" />
+	</resultMap>
+              
+	<resultMap type="com.groovit.groupware.vo.DepartmentVO"
+		id="deptMap">
+		<result property="deptCd" column="DEPT_CD" />
+		<result property="deptUpCd" column="DEPT_UP_CD" />
+		<result property="deptNm" column="DEPT_NM" />
+		<result property="deptUpCdd" column="DEPT_UP_CDD" />
+	</resultMap>
+	
+	<resultMap type="atchfileDetailVO" id="atchfileDetailMap">
+		<result property="atchfileDetailSn" column="ATCHFILE_DETAIL_SN"/>
+		<result property="atchfileSn" column="ATCHFILE_SN"/>
+		<result property="atchfileDetailLgclfl" column="ATCHFILE_DETAIL_LGCLFL"/>
+		<result property="atchfileDetailPhyscl" column="ATCHFILE_DETAIL_PHYSCL"/>
+		<result property="atchfileDetailPhysclPath" column="ATCHFILE_DETAIL_PHYSCL_PATH"/>
+		<result property="atchfileDetailSize" column="ATCHFILE_DETAIL_SIZE"/>
+		<result property="atchfileDetailExtsn" column="ATCHFILE_DETAIL_EXTSN"/>
+		<result property="empId" column="EMP_ID"/>
+		<result property="atchfileDetailRegDt" column="ATCHFILE_DETAIL_REG_DT"/>
+		<result property="atchfileDetailYn" column="ATCHFILE_DETAIL_YN"/>
+		<result property="atchfileDelyn" column="ATCHFILE_DELYN"/>
+	</resultMap>
+
+	<!-- 
+	//{"keyword": "","currentPage": 1,"deptUpCd": "X001","deptCd": "D005"}
+	 -->
+	<select id="hrmList" parameterType="hashMap" resultMap="employeeMap">
+		SELECT T.*
+		FROM
+		(
+			SELECT 
+				A.EMP_ID, 
+				A.EMP_PASS, 
+				A.EMP_MNG,
+				ROW_NUMBER() OVER(ORDER BY EMP_ID DESC) RNUM,
+				A.ATCHFILE_SN, 
+				A.EMP_STTS, 
+				A.EMP_NM, 
+				A.EMP_MAIL, 
+				A.EMP_EML,
+				A.EMP_TELNO, 
+				A.EMP_ADDR, 
+				A.EMP_DADDR, 
+				A.EMP_BRDT, 
+				A.EMP_JNCMP_YMD,
+				B.JBGD_NM, 
+				C.DEPT_NM,
+				(SELECT D.DEPT_NM 
+		     	FROM DEPARTMENT D
+		    	 WHERE D.DEPT_CD = C.DEPT_UP_CD) AS DEPT_UP_CD
+			FROM EMPLOYEE A, JOB_GRADE B, DEPARTMENT C
+			WHERE A.DEPT_CD = C.DEPT_CD 
+			AND A.JBGD_CD = B.JBGD_CD
+			<include refid="where"></include>
+			
+		) T
+		WHERE T.RNUM BETWEEN ((#{currentPage} * 10)-(10 - 1)) AND (#{currentPage} * 10)
+	</select>
+	
+	<select id="empDetail" parameterType="String" resultMap="employeeMap">
+		SELECT 
+	    A.EMP_ID,
+	    A.EMP_NM, 
+	    A.EMP_TELNO, 
+	    B.DEPT_NM,
+	    A.EMP_MAIL, 
+	    C.JBGD_NM, 
+	    A.ATCHFILE_SN,
+	    D.COM_CODE_DETAIL_NM,
+	    B.DEPT_UP_CD AS DEPT_UP_CDD,
+	    A.EMP_JNCMP_YMD,
+        E.ATCHFILE_DETAIL_PHYSCL_PATH,
+		    (SELECT D.DEPT_NM 
+		     FROM DEPARTMENT D 
+		     WHERE D.DEPT_CD = B.DEPT_UP_CD) AS DEPT_UP_CD
+		FROM EMPLOYEE A
+	    JOIN DEPARTMENT B ON A.DEPT_CD = B.DEPT_CD
+	    JOIN JOB_GRADE C ON A.JBGD_CD = C.JBGD_CD
+	    JOIN COM_CODE_DETAIL D ON A.EMP_STTS = D.COM_CODE_DETAIL
+        LEFT OUTER JOIN ATCHFILE_DETAIL E ON A.ATCHFILE_SN = E.ATCHFILE_SN
+		WHERE 
+	    A.EMP_ID = #{empId}
+	</select>
+	
+	<insert id="insertEmpAuthrt" parameterType="String">
+		INSERT INTO EMPLOYEE_AUTHRT(EA_AUTHRT, EMP_ID)
+		VALUES('ROLE_MEMBER', #{empId})
+	</insert>
+	
+	<update id="ptpResig" parameterType="String">
+		UPDATE EMPLOYEE
+		SET EMP_STTS = 'E99'
+		WHERE EMP_ID = #{empId}
+	</update>
+	
+	
+	<update id="deptUpdate" parameterType="hashMap">
+		UPDATE EMPLOYEE
+		SET DEPT_CD = #{deptCd}
+		WHERE EMP_ID = #{empId}
+	</update>
+	
+	<update id="jobUpdate" parameterType="hashMap">
+		UPDATE EMPLOYEE
+		SET JBGD_CD = #{jbGdCd}
+		WHERE EMP_ID = #{empId}
+	</update>
+	
+	<select id="leaveSelect" resultType="com.groovit.groupware.vo.ComCodeDetailVO">
+		SELECT COM_CODE_DETAIL, COM_CODE_DETAIL_NM
+        FROM COM_CODE_DETAIL
+        WHERE COM_CODE = 'COM001'
+        AND COM_CODE_DETAIL_USE_YN = 'Y'
+	</select>
+	
+	<update id="empStts" parameterType="hashMap">
+		UPDATE EMPLOYEE
+        SET EMP_STTS = #{empStts}
+        WHERE EMP_ID = #{empId}
+	</update>
+	
+<!-- 	<insert id="insertYearlyVacation" parameterType="String"> -->
+<!-- 		<selectKey resultType="String" order="BEFORE" keyProperty="yrycNo"> -->
+<!-- 		    SELECT NVL(  -->
+<!-- 	           SUBSTR(MAX(yryc_no), 1, 2) ||  -->
+<!-- 	           LPAD(TO_NUMBER(SUBSTR(MAX(yryc_no), 4)) + 1, 3, '0'), -->
+<!-- 	           'YV001' -->
+<!-- 	       ) -->
+<!-- 			FROM YEARLY_VACATION -->
+<!--     	</selectKey> -->
+<!-- 		    INSERT INTO yearly_vacation ( -->
+<!-- 			    yryc_no -->
+<!-- 			    , yryc_count -->
+<!-- 			    , emp_id -->
+<!-- 			    , yryc_reg_dt -->
+<!-- 			    , yryc_ty -->
+<!-- 			) VALUES ( -->
+<!-- 			    #{yrycNo} -->
+<!-- 			  , 0 -->
+<!-- 			  , #{empId} -->
+<!-- 			  , SYSDATE -->
+<!-- 			  , '0' -->
+<!-- 			) -->
+<!-- 	</insert> -->
+	
+	
+	
+</mapper>

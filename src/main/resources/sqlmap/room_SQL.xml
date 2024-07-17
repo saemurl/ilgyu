@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="room">
+
+	<select id="employee" parameterType="String" resultType="com.groovit.groupware.vo.EmployeeVO">
+		SELECT
+	    emp_id
+	  , emp_pass
+	  , emp_mng
+	  , atchfile_sn
+	  , emp_stts
+	  , emp_nm
+	  , emp_mail
+	  , emp_eml
+	  , emp_telno
+	  , emp_addr
+	  , emp_daddr
+	  , emp_brdt
+	  , emp_jncmp_ymd
+	  , dept_cd
+	  , jbgd_cd
+		FROM
+	    employee
+	WHERE
+	    emp_id = #{empId}
+	</select>
+
+	<select id="roomSearch" resultType="com.groovit.groupware.vo.MeetingRoomVO">
+		SELECT
+	    mtgr_no
+	  , mtgr_nm
+	  , mtgr_chck
+		FROM
+	    meetingroom
+		WHERE
+	    mtgr_no LIKE 'M%'
+	</select>
+	
+	<select id="roomRentCheck" parameterType="String" resultType="com.groovit.groupware.vo.MeetingRoomRentVO">
+		SELECT
+	    rent_no
+	  , mtgr_no
+	  , emp_id
+	  , rent_stts
+	  , rent_bgng
+	  , rent_end
+	  , rent_rsn
+		FROM
+	    meetingroom_rent
+		WHERE
+	    rent_bgng LIKE #{date} || '%'
+	    AND
+	    mtgr_no = (select mtgr_no from meetingroom where mtgr_nm = #{room})
+	</select>
+
+	<insert id="rent" parameterType="com.groovit.groupware.vo.MeetingRoomRentVO">
+		INSERT INTO meetingroom_rent (
+		rent_no
+		, mtgr_no
+		, emp_id
+		, rent_stts
+		, rent_bgng
+		, rent_end
+		, rent_rsn
+		) VALUES (
+		(
+          SELECT 'R' || LPAD(NVL(MAX(TO_NUMBER(SUBSTR(rent_no, 2))), 0) + 1, 11, '0')
+          FROM meetingroom_rent
+        )
+		, (select mtgr_no from meetingroom where mtgr_nm = #{mtgrNm})
+		, #{empId}
+		, 'Y'
+		, #{rentBgng}
+		, #{rentEnd}
+		, #{rentRsn}
+		)
+	</insert>
+
+	<resultMap id="meetingRoomResultMap" type="com.groovit.groupware.vo.MeetingRoomVO">
+        <id property="mtgrNo" column="MTGR_NO"/>
+        <result property="mtgrNm" column="MTGR_NM"/>
+        <result property="mtgrCpct" column="MTGR_CPCT"/>
+        <result property="mtgrExpln" column="MTGR_EXPLN"/>
+        <result property="atchfileSn" column="ATCHFILE_SN"/>
+        <result property="mtgrChck" column="MTGR_CHCK"/>
+        <result property="imgPath" column="imgPath"/>
+        <collection property="equipments" ofType="com.groovit.groupware.vo.EquipmentVO">
+            <id property="eqpmntCd" column="EQPMNT_CD"/>
+            <result property="eqpmntNm" column="EQPMNT_NM"/>
+            <result property="iconPath" column="ICON_PATH"/>
+        </collection>
+    </resultMap>
+
+    <select id="roomList" resultMap="meetingRoomResultMap">
+        SELECT 
+            m.MTGR_NO,
+            m.MTGR_NM,
+            m.MTGR_CPCT,
+            m.MTGR_EXPLN,
+            m.ATCHFILE_SN,
+            m.MTGR_CHCK,
+            el.EQPMNT_CD,
+            eq.EQPMNT_NM,
+            eq.ICON_PATH,
+            C.ATCHFILE_DETAIL_PHYSCL_PATH as imgPath
+        FROM 
+            MEETINGROOM m
+        LEFT JOIN 
+            EQUIPMENT_LIST el ON m.MTGR_NO = el.MTGR_NO
+        LEFT JOIN 
+            EQUIPMENT eq ON el.EQPMNT_CD = eq.EQPMNT_CD
+        LEFT JOIN
+            ATCHFILE_DETAIL C ON C.ATCHFILE_SN = m.ATCHFILE_SN
+        WHERE
+			m.MTGR_NO LIKE 'M%'
+		ORDER BY 
+			mtgr_nm ASC
+    </select>
+
+	<select id="myRentList" parameterType="String" resultType="com.groovit.groupware.vo.MeetingRoomRentVO">
+		SELECT
+		    a.rent_no
+		  , a.mtgr_no
+		  , b.mtgr_nm
+		  , a.emp_id
+          , c.emp_nm
+		  , a.rent_stts
+		  , a.rent_bgng
+		  , a.rent_end
+		  , a.rent_rsn
+		FROM
+		    meetingroom_rent a, meetingroom b, employee c
+		WHERE
+		    a.mtgr_no = b.mtgr_no and
+            a.emp_id = c.emp_id and
+		    a.emp_id = #{empId}
+		ORDER BY rent_no asc
+	</select>
+
+	<update id="rentalCancel" parameterType="String">
+		UPDATE meetingroom_rent
+		SET
+    		rent_stts = 'N'
+		WHERE
+    		rent_no = #{rentNo}
+	</update>
+
+	<update id="rentalUpdate" parameterType="com.groovit.groupware.vo.MeetingRoomRentVO">
+		UPDATE meetingroom_rent
+		SET
+    		rent_rsn = #{rentRsn}
+		WHERE
+    		rent_no = #{rentNo}
+	</update>
+
+	<select id="roomListAdmin" resultType="com.groovit.groupware.vo.MeetingRoomRentVO">
+		SELECT
+		    a.rent_no
+		  , a.mtgr_no
+		  , b.mtgr_nm
+		  , a.emp_id
+          , c.emp_nm
+		  , a.rent_stts
+		  , a.rent_bgng
+		  , a.rent_end
+		  , a.rent_rsn
+		FROM
+		    meetingroom_rent a, meetingroom b, employee c
+		WHERE
+		    a.mtgr_no = b.mtgr_no and
+            a.emp_id = c.emp_id
+		ORDER BY rent_no ASC
+	</select>
+
+	<select id="getRentCounts" resultType="hashmap">
+		SELECT
+		    A.mtgr_no,
+		    A.mtgr_nm,
+		    NVL(COUNT(B.mtgr_no), 0) AS rent_count
+		FROM
+		    meetingroom A
+		LEFT JOIN
+		    meetingroom_rent B ON A.mtgr_no = B.mtgr_no
+		    AND (B.rent_stts != 'N' OR B.rent_stts IS NULL)
+		    AND SUBSTR(B.rent_bgng, 1, 8) = TO_CHAR(SYSDATE, 'YYYYMMDD')
+		WHERE
+		    A.mtgr_no LIKE 'M%'
+		GROUP BY
+		    A.mtgr_no,
+		    A.mtgr_nm
+		ORDER BY
+		    A.mtgr_no ASC
+	</select>
+	
+	<update id="adminRentalCancel" parameterType="String">
+		UPDATE meetingroom_rent
+		SET
+    		rent_stts = 'N'
+		WHERE
+    		rent_no = #{rentNo}
+	</update>
+	
+	<select id="selectRentList" parameterType="String" resultType="com.groovit.groupware.vo.MeetingRoomRentVO">
+		SELECT
+		    A.rent_no,
+		    A.mtgr_no,
+		    A.emp_id,
+		    A.rent_stts,
+		    A.rent_bgng,
+		    A.rent_end,
+		    A.rent_rsn,
+		    B.emp_nm,
+		    C.mtgr_nm
+		FROM
+		    meetingroom_rent A
+		JOIN
+		    EMPLOYEE B ON A.emp_id = B.emp_id
+		JOIN
+		    MEETINGROOM C ON A.mtgr_no = C.mtgr_no
+		WHERE
+		    C.mtgr_nm = #{mtgrNm}
+		    AND SUBSTR(A.rent_bgng, 1, 8) = TO_CHAR(SYSDATE, 'YYYYMMDD')
+	</select>
+	
+	<insert id="createRoom" parameterType="com.groovit.groupware.vo.MeetingRoomVO">
+		INSERT INTO meetingroom (
+            mtgr_no,
+            mtgr_nm,
+            mtgr_cpct,
+            mtgr_expln,
+            mtgr_chck
+        )
+        VALUES (
+            (
+                SELECT 
+                    'M' || LPAD(TO_NUMBER(NVL(SUBSTR(MAX(mtgr_no), 2), '0')) + 1, 3, '0')
+                FROM
+                    meetingroom
+                WHERE 
+                    mtgr_no LIKE 'M%'
+            ),
+            #{mtgrNm},
+            #{mtgrCpct},
+            #{mtgrExpln},
+            'Y'
+        )
+	</insert>
+	
+	<select id="selectMaxMtgrNo" resultType="String">
+		SELECT 'M' || LPAD(TO_NUMBER(NVL(SUBSTR(MAX(mtgr_no), 2), '0')), 3, '0') as mtgr_no
+        FROM meetingroom
+        WHERE mtgr_no LIKE 'M%'
+	</select>
+	
+	<insert id="roomEquipmentAdd" parameterType="com.groovit.groupware.vo.EquipmentListVO">
+		INSERT INTO equipment_list (
+            mtgr_no,
+            eqpmnt_cd
+        ) VALUES (
+            #{mtgrNo},
+            #{eqpmntCd}
+        )
+	</insert>
+	
+	<update id="roomAtchfileSn" parameterType="com.groovit.groupware.vo.MeetingRoomVO">
+		UPDATE 
+		    meetingroom
+		SET
+		    atchfile_sn = #{atchfileSn}
+		WHERE
+		    mtgr_no = #{mtgrNo}
+	</update>	
+	
+	<select id="reloadRentRoom" resultType="com.groovit.groupware.vo.MeetingRoomVO">
+		SELECT
+		    mtgr_nm
+		FROM
+		    meetingroom
+		WHERE
+		    mtgr_no LIKE 'M%'
+	</select>
+	
+	<select id="selectRoomDetail" resultType="com.groovit.groupware.vo.MeetingRoomVO">
+		SELECT
+    		mtgr_no
+		  , mtgr_nm
+		  , mtgr_cpct
+		  , mtgr_expln
+		  , atchfile_sn
+		  , mtgr_chck
+		FROM
+		    meetingroom
+		WHERE
+		    mtgr_nm = #{mtgrNm}
+	</select>
+	
+	<update id="updateRoom" parameterType="com.groovit.groupware.vo.MeetingRoomVO">
+		UPDATE meetingroom
+		SET
+		    mtgr_nm = #{mtgrNm},
+		    mtgr_cpct = #{mtgrCpct},
+		    mtgr_expln = #{mtgrExpln},
+		    mtgr_chck = #{mtgrChck}
+		WHERE
+		    mtgr_nm = #{mtgrNm}
+	</update>
+	
+	<insert id="rentRoomCalAdd" parameterType="com.groovit.groupware.vo.ScheduleCalendarVO">
+		INSERT INTO schedule_calendar (
+        id,
+        schdl_cd,
+        emp_id,
+        description,
+        title,
+        "START",
+        "END",
+        allday,
+        color,
+        location
+	    ) 
+	    VALUES (
+	        (SELECT NVL(MAX(ID), 0) + 1 FROM SCHEDULE_CALENDAR),
+	        'SC001',
+	        #{empId},
+	        #{description},
+	        #{title},
+	        #{start},
+	        #{end},
+	        #{allday},
+	        #{color},
+	        #{location}
+	    )
+	</insert>
+	
+	<delete id="CalRoomRentCancel">
+		DELETE
+		FROM 
+		    SCHEDULE_CALENDAR
+		WHERE 
+		    EMP_ID = (
+		        SELECT EMP_ID 
+		        FROM MEETINGROOM_RENT 
+		        WHERE RENT_NO = #{rentNo}
+		    )
+		AND 
+		    "LOCATION" = (
+		        SELECT MTGR_NM
+		        FROM MEETINGROOM
+		        JOIN MEETINGROOM_RENT 
+		        ON MEETINGROOM.MTGR_NO = MEETINGROOM_RENT.MTGR_NO
+		        WHERE RENT_NO = #{rentNo}
+		    )
+		AND 
+		    "START" = (
+		        SELECT TO_DATE(RENT_BGNG, 'YYYYMMDD HH24:MI:SS')
+		        FROM MEETINGROOM_RENT 
+		        WHERE RENT_NO = #{rentNo}
+		    )
+	</delete>
+	
+	<select id="myRentRoomLabels" resultType="com.groovit.groupware.vo.MeetingRoomVO" parameterType="String">
+		SELECT
+		    a.mtgr_nm,
+		    COALESCE(COUNT(b.mtgr_no), 0) AS count
+		FROM
+		    meetingroom a
+		LEFT JOIN
+		    meetingroom_rent b
+		ON
+		    a.mtgr_no = b.mtgr_no
+		    AND b.emp_id = #{empId}
+		WHERE
+		    a.mtgr_nm != '장소 미정'
+		    AND b.rent_stts = 'Y'
+		GROUP BY
+		    a.mtgr_nm
+	</select>
+	
+	<select id="myRentTop3" resultType="com.groovit.groupware.vo.MeetingRoomVO" parameterType="String">
+		SELECT
+		    a.mtgr_nm,
+		    COALESCE(COUNT(b.mtgr_no), 0) AS count
+		FROM
+		    meetingroom a
+		LEFT JOIN
+		    meetingroom_rent b
+		ON
+		    a.mtgr_no = b.mtgr_no
+		    AND b.emp_id = #{empId}
+		WHERE
+		    a.mtgr_nm != '장소 미정'
+            AND b.rent_stts = 'Y'
+		GROUP BY
+		    a.mtgr_nm
+        ORDER BY count DESC
+	</select>
+	
+</mapper>

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="orgChart">
+
+	<select id="list" resultType="orgChartVO">
+		SELECT
+		B.DEPT_CD AS ID,
+		B.DEPT_NM AS TEXT,
+		B.DEPT_UP_CD AS PARENT,
+		'glyphicon glyphicon-home' AS ICON
+		FROM
+		DEPARTMENT B
+
+		UNION ALL
+
+		SELECT
+		A.EMP_ID AS ID,
+		A.EMP_NM AS TEXT,
+		A.DEPT_CD AS PARENT,
+		'glyphicon glyphicon-user' AS ICON
+		FROM
+		EMPLOYEE A
+		LEFT JOIN
+		DEPARTMENT B ON A.DEPT_CD = B.DEPT_CD
+		LEFT JOIN
+		JOB_GRADE C ON A.JBGD_CD
+		= C.JBGD_CD
+	</select>
+
+
+	<resultMap type="employeeVO" id="employeeMap">
+		<result property="empId" column="EMP_ID" />
+		<result property="empPass" column="EMP_PASS" />
+		<result property="empMng" column="EMP_MNG" />
+		<result property="atchfileSn" column="ATCHFILE_SN" />
+		<result property="empStts" column="EMP_STTS" />
+		<result property="empNm" column="EMP_NM" />
+		<result property="empMail" column="EMP_MAIL" />
+		<result property="empEml" column="EMP_EML" />
+		<result property="empTelno" column="EMP_TELNO" />
+		<result property="empAddr" column="EMP_ADDR" />
+		<result property="empDaddr" column="EMP_DADDR" />
+		<result property="empBrdt" column="EMP_BRDT" />
+		<result property="empJncmpYmd" column="EMP_JNCMP_YMD" />
+		<result property="deptCd" column="DEPT_CD" />
+		<result property="jbgdCd" column="JBGD_CD" />
+		<collection property="jobGradeVO" resultMap="jobGradeMap"></collection>
+		<collection property="departmentVO" resultMap="deptMap"></collection>
+		<collection property="atchfileDetailVOList" resultMap="atchfileDetailMap"></collection>
+	</resultMap>
+
+	<resultMap type="com.groovit.groupware.vo.JobGradeVO" id="jobGradeMap">
+		<result property="jbgdCd" column="JBGD_CD" />
+		<result property="jbgdNm" column="JBGD_NM" />
+	</resultMap>
+
+	<resultMap type="com.groovit.groupware.vo.DepartmentVO" id="deptMap">
+		<result property="deptCd" column="DEPT_CD" />
+		<result property="deptUpCd" column="DEPT_UP_CD" />
+		<result property="deptNm" column="DEPT_NM" />
+	</resultMap>
+	
+	<resultMap type="atchfileDetailVO" id="atchfileDetailMap">
+		<result property="atchfileDetailSn" column="ATCHFILE_DETAIL_SN"/>
+		<result property="atchfileSn" column="ATCHFILE_SN"/>
+		<result property="atchfileDetailLgclfl" column="ATCHFILE_DETAIL_LGCLFL"/>
+		<result property="atchfileDetailPhyscl" column="ATCHFILE_DETAIL_PHYSCL"/>
+		<result property="atchfileDetailPhysclPath" column="ATCHFILE_DETAIL_PHYSCL_PATH"/>
+		<result property="atchfileDetailSize" column="ATCHFILE_DETAIL_SIZE"/>
+		<result property="atchfileDetailExtsn" column="ATCHFILE_DETAIL_EXTSN"/>
+		<result property="empId" column="EMP_ID"/>
+		<result property="atchfileDetailRegDt" column="ATCHFILE_DETAIL_REG_DT"/>
+		<result property="atchfileDetailYn" column="ATCHFILE_DETAIL_YN"/>
+		<result property="atchfileDelyn" column="ATCHFILE_DELYN"/>
+	</resultMap>
+	
+
+
+	<select id="detail" parameterType="hashMap"
+		resultMap="employeeMap">
+		SELECT
+		A.EMP_NM,
+		A.EMP_ID,
+		A.EMP_TELNO,
+		B.DEPT_NM,
+		A.EMP_MAIL,
+		C.JBGD_NM,
+		A.ATCHFILE_SN,
+        D.ATCHFILE_DETAIL_PHYSCL_PATH
+		FROM
+		EMPLOYEE A
+		JOIN DEPARTMENT B ON A.DEPT_CD = B.DEPT_CD
+		JOIN JOB_GRADE C ON A.JBGD_CD = C.JBGD_CD
+        LEFT OUTER JOIN ATCHFILE_DETAIL D ON A.ATCHFILE_SN = D.ATCHFILE_SN
+		WHERE
+		A.EMP_ID = #{id}
+	</select>
+
+
+</mapper>

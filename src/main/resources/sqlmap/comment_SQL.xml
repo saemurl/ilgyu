@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="comment">
+
+    <insert id="commentCreate" parameterType="com.groovit.groupware.vo.CommentVO">
+        <selectKey resultType="String" order="BEFORE" keyProperty="cmntNo">
+            SELECT NVL(
+            SUBSTR(MAX(CMNT_NO), 1, 3) ||
+            LPAD(TO_NUMBER(SUBSTR(MAX(CMNT_NO), 4)) + 1, 3, '0'),
+            '댓글-001'
+            )
+            FROM "COMMENT"
+        </selectKey>
+
+        INSERT INTO "COMMENT"
+        (CMNT_NO, CMNT_CONTENT, EMP_ID, CMNT_WRT_DT, CMNT_MDFCN_DT, CMNT_STTS, FB_NO)
+        VALUES (#{cmntNo},#{cmntContent},#{empId},SYSDATE,SYSDATE,'0',#{fbNo})
+    </insert>
+
+
+    <select id="commentList" parameterType="com.groovit.groupware.vo.CommentVO" resultType="com.groovit.groupware.vo.CommentVO">
+        SELECT
+        A.cmnt_no,
+        A.cmnt_content,
+        A.emp_id,
+        A.cmnt_wrt_dt,
+        A.cmnt_mdfcn_dt,
+        A.cmnt_stts,
+        A.cmnt_up,
+        A.fb_no,
+        B.EMP_NM
+        FROM
+        "COMMENT" A
+        JOIN EMPLOYEE B ON A.EMP_ID = B.EMP_ID
+        WHERE
+        A.fb_no = #{fbNo}
+        ORDER BY
+        A.cmnt_wrt_dt DESC
+    </select>
+
+
+    <!-- 댓글 신고 -->
+    <insert id="commentReport" parameterType="com.groovit.groupware.vo.CommentDeclarationVO">
+   		 <selectKey resultType="String" order="BEFORE" keyProperty="dcNo">
+            SELECT NVL(
+            SUBSTR(MAX(dc_no), 1, 3) ||
+            LPAD(TO_NUMBER(SUBSTR(MAX(dc_no), 4)) + 1, 3, '0'),
+            'CD-001'
+            )
+            FROM comment_declaration
+        </selectKey>
+        INSERT INTO comment_declaration (
+        dc_no
+        , emp_id
+        , dc_type
+        , dc_stts
+        , cmnt_no
+        , dc_date
+        ) VALUES (
+        #{dcNo}
+        , #{empId}
+        , #{dcType}
+        , '1'
+        , #{cmntNo}
+        , SYSDATE
+        )
+    </insert>
+    
+    <delete id="commentDelete" parameterType="com.groovit.groupware.vo.CommentVO">
+        DELETE FROM "COMMENT"
+			WHERE
+        cmnt_no = #{cmntNo}
+    </delete>
+
+	<update id="commentUpdate" parameterType="com.groovit.groupware.vo.CommentDeclarationVO">
+		UPDATE "COMMENT"
+		SET
+	        cmnt_stts = '1'
+		WHERE
+	        cmnt_no = #{cmntNo}
+	</update>
+
+
+</mapper>

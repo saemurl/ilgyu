@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.groovit.groupware.mapper.EmployeeMapper">
+
+	<resultMap type="employeeVO" id="EmployeeVOMap">
+		<result property="empId" column="EMP_ID"/>
+		<result property="empPass" column="EMP_PASS"/>
+		<result property="empMng" column="EMP_MNG"/>
+		<result property="atchfileSn" column="ATCHFILE_SN"/>
+		<result property="empStts" column="EMP_STTS"/>
+		<result property="empNm" column="EMP_NM"/>
+		<result property="empMail" column="EMP_MAIL"/>
+		<result property="empEml" column="EMP_EML"/>
+		<result property="empTelno" column="EMP_TELNO"/>
+		<result property="empAddr" column="EMP_ADDR"/>
+		<result property="empDaddr" column="EMP_DADDR"/>
+		<result property="empBrdt" column="EMP_BRDT"/>
+		<result property="empJncmpYmd" column="EMP_JNCMP_YMD"/>
+		<result property="deptCd" column="DEPT_CD"/>
+		<result property="deptNm" column="DEPT_NM"/>
+		<result property="jbgdCd" column="JBGD_CD"/>
+		<result property="jbgdNm" column="JBGD_NM"/>
+		<collection property="employeeAuthrtVOList" resultMap="employeeAuthrtVOMap"></collection>
+		<collection property="atchfileDetailVOList" resultMap="atchfileDetailMap"></collection>
+	</resultMap>
+	
+	<resultMap type="employeeAuthrtVO" id="employeeAuthrtVOMap">
+		<result property="eaAuthrt" column="EA_AUTHRT"/>
+		<result property="empId" column="EMP_ID"/>
+	</resultMap>
+	
+	<resultMap type="atchfileDetailVO" id="atchfileDetailMap">
+		<result property="atchfileDetailSn" column="ATCHFILE_DETAIL_SN"/>
+		<result property="atchfileSn" column="ATCHFILE_SN"/>
+		<result property="atchfileDetailLgclfl" column="ATCHFILE_DETAIL_LGCLFL"/>
+		<result property="atchfileDetailPhyscl" column="ATCHFILE_DETAIL_PHYSCL"/>
+		<result property="atchfileDetailPhysclPath" column="ATCHFILE_DETAIL_PHYSCL_PATH"/>
+		<result property="atchfileDetailSize" column="ATCHFILE_DETAIL_SIZE"/>
+		<result property="atchfileDetailExtsn" column="ATCHFILE_DETAIL_EXTSN"/>
+		<result property="empId" column="EMP_ID"/>
+		<result property="atchfileDetailRegDt" column="ATCHFILE_DETAIL_REG_DT"/>
+		<result property="atchfileDetailYn" column="ATCHFILE_DETAIL_YN"/>
+		<result property="atchfileDelyn" column="ATCHFILE_DELYN"/>
+	</resultMap>
+
+	<!-- 로그인 SQL 문 -->
+	<select id="detail" parameterType="string" resultMap="EmployeeVOMap">
+        SELECT
+		    A.EMP_ID 
+		  , A.EMP_PASS
+		  , A.EMP_MNG
+		  , A.ATCHFILE_SN
+		  , A.EMP_STTS
+		  , A.EMP_NM
+		  , A.EMP_MAIL
+		  , A.EMP_EML
+		  , A.EMP_TELNO
+		  , A.EMP_ADDR
+		  , A.EMP_DADDR
+		  , A.EMP_BRDT
+		  , A.EMP_JNCMP_YMD
+		  , A.DEPT_CD
+		  , A.JBGD_CD
+		  , B.EA_AUTHRT
+		FROM
+		    EMPLOYEE A, EMPLOYEE_AUTHRT B
+		    WHERE A.EMP_ID = B.EMP_ID
+		    AND A.EMP_ID = #{empId}
+	</select>
+	
+	<!-- 직원 상세 -->
+	<select id="getEmployeeById" parameterType="string" resultMap="EmployeeVOMap">
+        SELECT
+            A.EMP_ID, 
+            A.EMP_PASS, 
+            A.EMP_MNG, 
+            A.ATCHFILE_SN, 
+            A.EMP_STTS, 
+            A.EMP_NM, 
+            A.EMP_MAIL, 
+            A.EMP_EML, 
+            A.EMP_TELNO, 
+            A.EMP_ADDR, 
+            A.EMP_DADDR, 
+            A.EMP_BRDT, 
+            A.EMP_JNCMP_YMD, 
+            A.DEPT_CD,
+            (SELECT dept_nm FROM department where dept_cd = A.DEPT_CD) AS DEPT_NM,
+            A.JBGD_CD,
+            (SELECT jbgd_nm FROM job_grade where  jbgd_cd = A.JBGD_CD) AS JBGD_NM,
+            B.EA_AUTHRT,
+            C.ATCHFILE_DETAIL_PHYSCL_PATH
+        FROM EMPLOYEE A LEFT OUTER JOIN  EMPLOYEE_AUTHRT B ON(A.EMP_ID = B.EMP_ID)
+                        LEFT OUTER JOIN  ATCHFILE_DETAIL C ON(A.ATCHFILE_SN = C.ATCHFILE_SN)
+        WHERE  A.EMP_ID = #{empId}
+    </select>
+    
+    <!-- 정보 수정 -->
+    <update id="updateEmployee" parameterType="employeeVO">
+    	UPDATE EMPLOYEE A
+    	SET   
+    			A.EMP_PASS	  = #{empPass},
+            	A.EMP_NM      = #{empNm}, 
+            	A.EMP_MAIL    = #{empMail}, 
+            	<if test="atchfileSn!=null and atchfileSn!=''">
+            		A.ATCHFILE_SN = #{atchfileSn},
+            	</if>
+            	A.EMP_EML     = #{empEml}, 
+            	A.EMP_TELNO   = #{empTelno}, 
+            	A.EMP_ADDR    = #{empAddr}, 
+            	A.EMP_DADDR   = #{empDaddr}
+         WHERE  A.EMP_ID = #{empId}
+    </update>
+    
+    <!-- 사진 삭제(NULL) -->
+    <update id="updateEmployeeAtchfileSnNull" parameterType="com.groovit.groupware.vo.EmployeeVO">
+	    UPDATE EMPLOYEE
+	    SET ATCHFILE_SN = NULL
+	    WHERE EMP_ID = #{empId}
+	</update>
+	
+	<!-- 아이디 찾기 -->
+	<select id="findEmployeeByNameBirthdateAndPhone" parameterType="com.groovit.groupware.vo.EmployeeVO" 
+	 resultType="com.groovit.groupware.vo.EmployeeVO">
+		SELECT * FROM Employee 
+        WHERE EMP_NM = #{empNm}  
+        AND EMP_BRDT = #{empBrdt}  
+        AND EMP_TELNO = #{empTelno}
+	</select>
+	
+	<!-- 비밀번호 찾기용 SQL 문 -->
+	<select id="findEmployeeByIdAndEmail" parameterType="com.groovit.groupware.vo.EmployeeVO" 
+	 resultType="com.groovit.groupware.vo.EmployeeVO">
+        SELECT * FROM Employee
+        WHERE EMP_ID = #{empId}
+        AND EMP_EML = #{empEml}
+    </select>
+    
+    
+    <select id="deptEmpListAjax" parameterType="hashMap" resultType="hashMap">
+		SELECT
+		    employee.emp_id,
+		    employee.emp_nm,
+		    job_grade.jbgd_nm,
+		    department.dept_nm
+		FROM
+		    employee
+		LEFT OUTER JOIN
+		    job_grade ON employee.jbgd_cd = job_grade.jbgd_cd
+		JOIN
+		    department ON department.dept_cd = employee.dept_cd
+		WHERE
+		    employee.dept_cd = #{empDept}
+		    AND employee.emp_stts = 'E00'
+		ORDER BY
+		    employee.jbgd_cd
+    </select>
+    
+    
+</mapper>

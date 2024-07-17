@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.groovit.groupware.mapper.InterviewsMapper">
+    <resultMap type="interviewsVO" id="InterviewsVOMap">
+        <result property="intrvwId" column="INTRVW_ID"/>
+        <result property="applicantId" column="APPLICANT_ID"/>
+        <result property="status" column="STATUS"/>
+        <result property="applicationType" column="APPLICATION_TYPE"/>
+        <result property="jobType" column="JOB_TYPE"/>
+        <result property="applicationSource" column="APPLICATION_SOURCE"/>
+        <result property="firstIntrvwDate" column="FIRST_INTRVW_DATE"/>
+        <result property="secondIntrvwDate" column="SECOND_INTRVW_DATE"/>
+        <result property="registrationDate" column="REGISTRATION_DATE"/>
+        <collection property="applicantsVOList" resultMap="applicantsVOMap"></collection>
+    </resultMap>
+    <resultMap type="applicantsVO" id="applicantsVOMap">
+        <result property="applicantId" column="APPLICANT_ID"/>
+        <result property="applicantNm" column="APPLICANT_NM"/>
+        <result property="contact" column="CONTACT"/>
+        <result property="university" column="UNIVERSITY"/>
+        <result property="major" column="MAJOR"/>
+        <result property="applicantEmail" column="APPLICANT_EMAIL"/>
+    </resultMap>
+    
+    <!-- 면접 지원자 리스트 -->
+    <select id="getAllInterviews" resultMap="InterviewsVOMap">
+        SELECT 
+            i.INTRVW_ID,
+            i.STATUS,
+            i.APPLICATION_TYPE,
+            a.APPLICANT_NM,
+            a.CONTACT,
+            a.UNIVERSITY,
+            a.MAJOR,
+            a.APPLICANT_EMAIL,
+            i.FIRST_INTRVW_DATE,
+            i.SECOND_INTRVW_DATE,
+            i.REGISTRATION_DATE
+        FROM INTERVIEWS i
+        JOIN APPLICANTS a ON (i.APPLICANT_ID = a.APPLICANT_ID)
+        ORDER BY
+            i.REGISTRATION_DATE DESC
+    </select>
+
+    <!-- 상태 업데이트 쿼리 -->
+    <update id="updateStatus">
+	    UPDATE INTERVIEWS
+	    SET STATUS = #{status}
+	    WHERE INTRVW_ID = #{intrvwId}
+	</update>
+	
+	<!-- 엑셀로 내보내기 쿼리 -->
+    <select id="getInterviewsByIds" parameterType="java.util.List" resultMap="InterviewsVOMap">
+        SELECT 
+            i.INTRVW_ID,
+            i.STATUS,
+            i.APPLICATION_TYPE,
+            a.APPLICANT_NM,
+            a.UNIVERSITY,
+            a.MAJOR,
+            i.FIRST_INTRVW_DATE,
+            i.SECOND_INTRVW_DATE,
+            i.REGISTRATION_DATE
+        FROM INTERVIEWS i
+        JOIN APPLICANTS a ON (i.APPLICANT_ID = a.APPLICANT_ID)
+        WHERE i.INTRVW_ID IN 
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+    
+    <!-- 지원자 등록 -->
+	<insert id="insertApplicant" parameterType="ApplicantsVO" useGeneratedKeys="true" keyProperty="applicantId">
+	    <!-- 방금 삽입된 지원자의 ID 가져오기 -->
+	    <selectKey keyProperty="applicantId" resultType="String" order="BEFORE">
+	        SELECT  'A' || TRIM(TO_CHAR(APPLICANT_SEQ.NEXTVAL ,'000'))
+	        FROM DUAL
+	    </selectKey>
+	    <!-- 지원자 정보 삽입 -->
+	    INSERT INTO APPLICANTS (APPLICANT_ID, APPLICANT_NM, UNIVERSITY, MAJOR, CONTACT, APPLICANT_EMAIL)
+	    VALUES (#{applicantId}, #{applicantNm}, #{university}, #{major}, #{contact}, #{applicantEmail})    
+	</insert>
+	<!-- 면접 등록 -->
+	<insert id="insertInterview" parameterType="InterviewsVO" useGeneratedKeys="true" keyProperty="intrvwId">
+	    <!-- 방금 삽입된 인터뷰의 ID 가져오기 -->
+	    <selectKey keyProperty="intrvwId" resultType="String" order="BEFORE">
+	        SELECT TO_CHAR(INTERVIEW_SEQ.NEXTVAL) FROM DUAL
+	    </selectKey>
+	    <!-- 인터뷰 정보 삽입 -->
+	    INSERT INTO INTERVIEWS (INTRVW_ID, STATUS, APPLICATION_TYPE, FIRST_INTRVW_DATE, SECOND_INTRVW_DATE, REGISTRATION_DATE, APPLICANT_ID)
+	    VALUES (#{intrvwId}, #{status}, #{applicationType}, TO_DATE(#{firstIntrvwDate, jdbcType=DATE}, 'YYYY-MM-DD'), TO_DATE(#{secondIntrvwDate, jdbcType=DATE}, 'YYYY-MM-DD'), SYSDATE, #{applicantId})
+	</insert>
+</mapper>

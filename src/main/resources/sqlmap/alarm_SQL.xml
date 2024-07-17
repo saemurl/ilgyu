@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="alarm">
+
+
+	<select id="senderInfo" parameterType="String" resultType="hashMap">
+	    SELECT
+	    	emp_id
+		  , emp_pass
+		  , emp_mng
+		  , atchfile_sn
+		  , emp_stts
+		  , emp_nm
+		  , emp_mail
+		  , emp_eml
+		  , emp_telno
+		  , emp_addr
+		  , emp_daddr
+		  , emp_brdt
+		  , emp_jncmp_ymd
+		  , dept_cd
+		  , jbgd_cd
+		FROM
+		    employee
+		WHERE
+		    EMP_ID = #{alarmSender}
+	</select>
+
+	<select id="receiverInfo" parameterType="String" resultType="hashMap">
+	   SELECT
+	    	emp_id
+		  , emp_pass
+		  , emp_mng
+		  , atchfile_sn
+		  , emp_stts
+		  , emp_nm
+		  , emp_mail
+		  , emp_eml
+		  , emp_telno
+		  , emp_addr
+		  , emp_daddr
+		  , emp_brdt
+		  , emp_jncmp_ymd
+		  , dept_cd
+		  , jbgd_cd
+		FROM
+		    employee
+		WHERE
+		    EMP_ID = #{alarmReceiver}
+	</select>
+	
+	<insert id="insertAlarm" parameterType="com.groovit.groupware.vo.AlarmVO" >
+		<selectKey resultType="String" order="BEFORE" keyProperty="alarmNo">
+            SELECT NVL(
+            SUBSTR(MAX(alarm_no), 1, 2) ||
+            LPAD(TO_NUMBER(SUBSTR(MAX(alarm_no), 3)) + 1, 3, '0'),
+            'AR001'
+            )
+            FROM ALARM
+        </selectKey>
+		    INSERT INTO alarm (
+			    alarm_no
+			    , alarm_type
+			    , alarm_rcvr
+			    , alarm_sndpty
+			    , alarm_stts
+			    , alarm_url
+			    , alarm_ocrn_tm
+			) VALUES (
+			    #{alarmNo}
+			  , #{alarmType}
+			  , #{alarmRcvr}
+			  , #{alarmSndpty}
+			  , #{alarmStts}
+			  , #{alarmUrl}
+			  , SYSDATE
+			)
+	</insert>
+	
+	
+	
+	<select id="alarmList" parameterType="hashMap" resultType="hashMap">
+		    
+    SELECT
+	    alarm_no
+	  , alarm_type
+	  , alarm_rcvr
+	  , alarm_sndpty
+	  , alarm_stts
+	  , alarm_url
+	  , TO_CHAR(alarm_ocrn_tm, 'YYYY-MM-DD') || ' | ' || TO_CHAR(alarm_ocrn_tm, 'HH24:MI:SS') AS alarm_ocrn_tm
+	  
+	FROM
+	    alarm
+	WHERE ALARM_RCVR = #{alarmRcvr}
+	ORDER BY
+    	ALARM_OCRN_TM DESC
+	
+	</select>
+	
+	
+	<update id="alarmRead" parameterType="hashMap">
+	    UPDATE alarm
+		SET
+		    ALARM_STTS = '1'
+		WHERE
+		        alarm_no = #{alarmNo}
+	</update>
+	
+	<update id="allReadNotifi" parameterType="String">
+		UPDATE alarm
+		SET
+		    ALARM_STTS = '1'
+		WHERE
+		    ALARM_RCVR = #{loginId}
+	</update>
+	
+	<delete id="alarmDelete" parameterType="hashMap">
+	  	DELETE FROM alarm
+		WHERE
+        alarm_no = #{alarmNo}
+	</delete>
+	
+	<select id="countAlarm" parameterType="String" resultType="String">
+    SELECT 
+	    COUNT (ALARM_STTS)
+	FROM
+	    alarm
+	    WHERE ALARM_RCVR = #{loginId}
+	    AND ALARM_STTS = '0'
+	</select>
+	
+	<delete id="allDelNotifi" parameterType="String">
+	DELETE FROM alarm
+    WHERE
+   		alarm_rcvr = #{loginId}
+	</delete>
+
+</mapper>

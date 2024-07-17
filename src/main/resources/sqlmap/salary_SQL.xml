@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="salary">
+	
+	<select id="empSelect" parameterType="String" resultType="employeeVO">
+		SELECT
+		    a.EMP_NM,
+		    b.JBGD_NM,
+		    c.dept_nm
+		FROM 
+		    EMPLOYEE a, JOB_GRADE b, DEPARTMENT c
+		WHERE 
+		    a.JBGD_CD = b.JBGD_CD
+		    AND a.DEPT_CD = c.DEPT_CD
+		    AND EMP_ID = #{empId}
+	</select>
+	
+	<select id="getSalaryData" parameterType="String" resultType="com.groovit.groupware.vo.SalaryVO">
+		SELECT
+		    sal_no
+		  , emp_id
+		  , sal_bsc
+		  , sal_allowance
+		  , sal_give_day
+		  , sal_ps
+		  , sal_ht
+		  , sal_emp
+		  , sal_tex
+		  , sal_as
+		  , sal_month
+		  , sal_meals
+		  , sal_etcs
+		FROM
+		    salary
+		WHERE
+		    sal_month = #{salMonth}
+		    AND emp_id = #{empId}
+	</select>
+	
+</mapper>

@@ -1,0 +1,551 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.groovit.groupware.mapper.MailMapper">
+	
+	<sql id="where">
+		<if test="num == 'newest'">
+			 ORDER BY A.ML_SNDNG_YMD DESC, EMP_NM
+		</if>
+		<if test="num == 'old'">
+			 ORDER BY A.ML_SNDNG_YMD, EMP_NM
+		</if>
+		<if test="num == 'all'">
+			 ORDER BY EMP_NM
+		</if>
+	</sql>
+	
+	<sql id="WBwhere">
+		<if test="num == 'newest'">
+			 ORDER BY E.ML_SNDNG_YMD DESC, EMP_NM
+		</if>
+		<if test="num == 'old'">
+			 ORDER BY E.ML_SNDNG_YMD, EMP_NM
+		</if>
+		<if test="num == 'all'">
+			 ORDER BY EMP_NM
+		</if>
+	</sql>
+	
+
+	<resultMap type="mailVO" id="mailMap">
+		<result property="mlSn" column="ML_SN"/>
+		<result property="mlTtl" column="ML_TTL"/>
+		<result property="mlCn" column="ML_CN"/>
+		<result property="mlSndngYmd" column="ML_SNDNG_YMD"/>
+		<result property="mlIptYn" column="ML_IPT_YN"/>
+		<result property="atchfileSn" column="ATCHFILE_SN"/>
+		<result property="strMlSndngYmd" column="STR_ML_SNDNG_YMD"/>
+		<result property="empAtchfileSn" column="EMP_ATCHFILE_SN"/>
+		<result property="empId" column="EMP_ID"/>
+		<collection property="mailSenderVOList" resultMap="mailSenderMap"></collection>
+		<collection property="mailReceiverList" resultMap="mailReceiverMap"></collection>
+		<collection property="wastebasketVOList" resultMap="wastebasketMap"></collection>
+		<collection property="fileList" resultMap="atchfileDetailVO"></collection>
+		<collection property="mailBookmarkVOList" resultMap="mailBookmarkMap"></collection>
+	</resultMap>
+	
+	<resultMap type="mailSenderVO" id="mailSenderMap">
+		<result property="mlSndpty" column="ML_SNDPTY"/>
+		<result property="mlSn" column="ML_SN"/>
+		<result property="mlStts" column="ML_STTS"/>
+		<result property="empNm" column="EMP_NM"/>
+		<result property="empId" column="EMP_ID"/>
+		<result property="atchfileSn" column="ATCHFILE_SN"/>
+	</resultMap>
+	
+	<resultMap type="mailReceiverVO" id="mailReceiverMap">
+		<result property="mlRcvr" column="ML_RCVR"/>
+		<result property="mlSn" column="ML_SN"/>
+		<result property="mlStts" column="ML_STTS"/>
+		<result property="mlRDt" column="ML_R_DT"/>
+		<result property="empNm" column="EMP_NM"/>
+		<result property="empMail" column="EMP_MAIL"/>
+		<result property="empId" column="EMP_ID"/>
+		<result property="empAtchfileSn" column="EMP_ATCHFILE_SN"/>
+		<result property="atchfileSn" column="ATCHFILE_SN"/>
+	</resultMap>
+	
+	<resultMap type="com.groovit.groupware.vo.WastebasketVO" id="wastebasketMap">
+		<result property="mlDeleter" column="ML_DELETER"/>
+		<result property="mlSn" column="ML_SN"/>
+		<result property="mlRSType" column="ML_R_S_TYPE"/>
+		<result property="mlDelDt" column="ML_DEL_DT"/>
+		<result property="wastebasketYn" column="WASTEBASKET_YN"/>
+	</resultMap>
+	
+	<resultMap type="atchfileDetailVO" id="atchfileDetailVO">
+		<result property="atchfileDetailSn" column="ATCHFILE_DETAIL_SN"/>
+		<result property="atchfileSn" column="ATCHFILE_SN"/>
+		<result property="atchfileDetailLgclfl" column="ATCHFILE_DETAIL_LGCLFL"/>
+		<result property="atchfileDetailPhyscl" column="ATCHFILE_DETAIL_PHYSCL"/>
+		<result property="atchfileDetailPhysclPath" column="ATCHFILE_DETAIL_PHYSCL_PATH"/>
+		<result property="atchfileDetailSize" column="ATCHFILE_DETAIL_SIZE"/>
+		<result property="atchfileDetailExtsn" column="ATCHFILE_DETAIL_EXTSN"/>
+		<result property="empId" column="EMP_ID"/>
+		<result property="atchfileDetailRegDt" column="ATCHFILE_DETAIL_REG_DT"/>
+		<result property="atchfileDetailYn" column="ATCHFILE_DETAIL_YN"/>
+		<result property="atchfileDelyn" column="ATCHFILE_DELYN"/>
+	</resultMap>
+	
+	<resultMap type="mailBookmarkVO" id="mailBookmarkMap">
+		<result property="bmEmpId" column="BM_EMP_ID"/>
+		<result property="mlSn" column="ML_SN"/>
+		<result property="mlRSType" column="ML_R_S_TYPE"/>
+		<result property="empId" column="EMP_ID"/>
+		<result property="empNm" column="EMP_NM"/>
+	</resultMap>
+	
+
+	
+	<select id="mailR" parameterType="hashMap" resultMap="mailMap">
+        SELECT 
+		    A.*, 
+		    D.ML_SNDPTY, 
+		    E.EMP_NM, 
+		    B.ML_STTS
+		FROM 
+		    MAIL A
+		JOIN 
+		    MAIL_SENDER D 
+		    ON A.ML_SN = D.ML_SN 
+		    AND (D.ML_STTS = 'M01' OR D.ML_STTS = 'M02')
+		JOIN 
+		    EMPLOYEE E 
+		    ON D.ML_SNDPTY = E.EMP_ID
+		JOIN 
+		    MAIL_RECEIVER B 
+		    ON A.ML_SN = B.ML_SN 
+		    AND B.ML_RCVR = #{empId} 
+		    AND (B.ML_STTS = 'M01' OR B.ML_STTS = 'M02')
+		WHERE 
+		    NOT EXISTS (
+		        SELECT 1
+		        FROM WASTEBASKET C
+		        WHERE A.ML_SN = C.ML_SN
+		        AND C.ML_R_S_TYPE = '2'
+		    )
+		<include refid="where"></include>
+		
+	</select>
+	
+	<select id="mailDetail" parameterType="hashMap" resultMap="mailMap">
+		SELECT A.*, D.ML_SNDPTY, E.EMP_NM, E.EMP_MAIL
+		FROM MAIL A
+		JOIN MAIL_SENDER D ON A.ML_SN = D.ML_SN
+		JOIN EMPLOYEE E ON D.ML_SNDPTY = E.EMP_ID
+        JOIN MAIL_RECEIVER B ON  A.ML_SN = B.ML_SN AND B.ML_RCVR = #{empId}
+        WHERE A.ML_SN = #{mlSn}
+	</select>
+	
+	<select id="mailS" parameterType="hashMap" resultMap="mailMap">
+       SELECT A.ML_SN,
+              A.ML_TTL,
+              A.ML_CN,
+              A.ML_SNDNG_YMD,
+			  A.ML_IPT_YN, 
+			  R.ML_RCVR, 
+			  S.EMP_NM, 
+			  S.EMP_MAIL
+		FROM MAIL A
+		JOIN MAIL_SENDER D ON A.ML_SN = D.ML_SN
+		JOIN MAIL_RECEIVER R ON A.ML_SN = R.ML_SN
+		JOIN EMPLOYEE S ON R.ML_RCVR = S.EMP_ID
+		WHERE D.ML_SNDPTY =  #{empId}
+		AND D.ML_STTS = 'M01'
+		AND NOT EXISTS (
+		    SELECT 1 
+		    FROM WASTEBASKET C
+		    WHERE A.ML_SN = C.ML_SN
+		    AND C.ML_R_S_TYPE = '1'
+		)
+		<include refid="where"></include>
+	</select>
+	
+	<select id="mailSDetail" parameterType="hashMap" resultMap="mailMap">
+		SELECT A.*, E.EMP_NM, E.EMP_MAIL, C.ML_RCVR
+		FROM MAIL A, MAIL_SENDER B,  MAIL_RECEIVER C, EMPLOYEE E
+		WHERE A.ML_SN = B.ML_SN
+		AND E.EMP_ID = C.ML_RCVR
+		AND C.ML_SN = A.ML_SN
+		AND B.ML_SNDPTY = #{empId}
+		AND B.ML_SN = #{mlSn}
+		ORDER BY E.EMP_NM
+	</select>
+	
+	<select id="empList" parameterType="String" resultType="employeeVO">
+		<![CDATA[
+		SELECT EMP_NM, EMP_ID, ATCHFILE_SN
+		FROM EMPLOYEE
+        WHERE EMP_ID <> #{empId}
+		ORDER BY EMP_NM
+		]]>
+	</select>
+	
+	<select id="mlSn" resultType="String">
+		SELECT NVL(SUBSTR(MAX(ML_SN), 1, 2) || TRIM(TO_CHAR(SUBSTR(MAX(ML_SN), 3) + 1, '000')), 'ML001') AS ML_SN
+		FROM MAIL
+	</select>
+	
+	<insert id="mailInsert" parameterType="mailVO">
+		INSERT INTO MAIL(ML_SN, ML_TTL, ML_CN, ML_IPT_YN, ATCHFILE_SN)
+		VALUES(#{mlSn}, #{mlTtl}, #{mlCn}, #{mlIptYn}, #{atchfileSn})
+	</insert>
+	
+	<insert id="senderInsert" parameterType="mailSenderVO">
+		INSERT INTO MAIL_SENDER(ML_SNDPTY, ML_SN, ML_STTS)
+		VALUES(#{mlSndpty}, #{mlSn}, #{mlStts})
+	</insert>
+	
+	<insert id="receiverInsert" parameterType="mailReceiverVO">
+		INSERT INTO MAIL_RECEIVER(ML_RCVR, ML_SN, ML_STTS)
+		VALUES(#{mlRcvr}, #{mlSn}, #{mlStts})
+	</insert>
+	
+	
+	<insert id="Wastebasket" parameterType="com.groovit.groupware.vo.WastebasketVO">
+		INSERT INTO WASTEBASKET(ML_DELETER, ML_SN, ML_R_S_TYPE)
+		VALUES(#{mlDeleter}, #{mlSn}, #{mlRSType})
+	</insert>
+	
+	
+	<select id="wbSelect" parameterType="hashMap" resultMap="mailMap">
+		SELECT
+		    A.*, 
+		    B.ML_RCVR,
+		    C.ML_SNDPTY,
+		    E.ML_TTL,
+		    E.ML_SNDNG_YMD,
+		    E.ML_IPT_YN,
+		    CASE 
+		        WHEN A.ML_DELETER = C.ML_SNDPTY THEN D_RCVR.EMP_NM
+		        WHEN A.ML_DELETER = B.ML_RCVR THEN D_SNDPTY.EMP_NM 
+		        ELSE NULL 
+		    END AS EMP_NM
+		FROM 
+		    WASTEBASKET A
+		LEFT JOIN MAIL_RECEIVER B ON A.ML_SN = B.ML_SN
+		LEFT JOIN MAIL_SENDER C ON A.ML_SN = C.ML_SN
+		LEFT JOIN EMPLOYEE D_RCVR ON D_RCVR.EMP_ID = B.ML_RCVR
+		LEFT JOIN EMPLOYEE D_SNDPTY ON D_SNDPTY.EMP_ID = C.ML_SNDPTY
+		LEFT JOIN MAIL E ON A.ML_SN = E.ML_SN
+		WHERE 
+		    A.ML_DELETER = #{empId}
+		    AND WASTEBASKET_YN = 'Y'
+		<include refid="WBwhere"></include>
+	</select>
+	
+	<delete id="restore" parameterType="hashMap">
+		DELETE
+		FROM WASTEBASKET
+		WHERE ML_DELETER = #{empId}
+		AND ML_SN = #{mlSn}
+	</delete>
+	
+	<update id="mlSttsUpdate" parameterType="hashMap">
+		UPDATE MAIL_RECEIVER
+		SET ML_STTS = 'M02'
+		WHERE ML_RCVR = #{empId}
+		AND ML_SN = #{mlSn}
+	</update>
+	
+	<select id="receiverCnt" parameterType="String" resultType="Integer">
+		SELECT COUNT(*) AS RECEIVER_CNT
+		FROM MAIL_RECEIVER A
+		WHERE A.ML_RCVR = #{empId}
+		AND A.ML_STTS = 'M01'
+		AND NOT EXISTS (
+		        SELECT 1
+		        FROM WASTEBASKET C
+		        WHERE A.ML_SN = C.ML_SN
+		        AND C.ML_R_S_TYPE = '2'
+		)
+	</select>
+	
+	<select id="Tsave" parameterType="hashMap" resultMap="mailMap">
+		SELECT A.*, 
+			   R.ML_RCVR, 
+			   S.EMP_NM, 
+			   S.EMP_MAIL
+		FROM MAIL A
+		JOIN MAIL_SENDER D ON A.ML_SN = D.ML_SN
+		JOIN MAIL_RECEIVER R ON A.ML_SN = R.ML_SN
+		JOIN EMPLOYEE S ON R.ML_RCVR = S.EMP_ID
+		WHERE D.ML_SNDPTY =  #{empId}
+        AND D.ML_STTS = 'M00'
+		AND NOT EXISTS (
+		    SELECT 1
+		    FROM WASTEBASKET C
+		    WHERE A.ML_SN = C.ML_SN
+		    AND C.ML_R_S_TYPE = '4'
+		)
+		<include refid="where"></include>
+		
+	</select>
+	
+	<select id="download" parameterType="String" resultType="atchfileDetailVO">
+		SELECT B.ATCHFILE_SN, B.ATCHFILE_DETAIL_LGCLFL, B.ATCHFILE_DETAIL_SN 
+		FROM MAIL A
+		JOIN ATCHFILE_DETAIL B ON A.ATCHFILE_SN = B.ATCHFILE_SN
+		WHERE A.ML_SN = #{mlSn} 
+	</select>
+	
+	<insert id="bookmark" parameterType="hashMap">
+		INSERT INTO MAIL_BOOKMARK(BM_EMP_ID, ML_SN, ML_R_S_TYPE)
+		VALUES(#{empId}, #{mlSn}, #{mlRSType})
+	</insert>
+	
+
+	
+	<select id="wbDetail" parameterType="hashMap" resultMap="mailMap">
+		SELECT A.*, 
+               B.ML_TTL, 
+               B.ML_CN, 
+               B.ML_SNDNG_YMD, 
+               B.ML_IPT_YN, 
+               B.ATCHFILE_SN , 
+		       CASE 
+		           WHEN A.ML_R_S_TYPE = 1 OR A.ML_R_S_TYPE = 4 THEN D.EMP_NM 
+		           WHEN A.ML_R_S_TYPE = 2 THEN E.EMP_NM 
+		       END AS EMP_NM,
+		        CASE
+		            WHEN A.ML_R_S_TYPE = 1 OR A.ML_R_S_TYPE = 4 THEN D.EMP_MAIL
+		            WHEN A.ML_R_S_TYPE = 2 THEN E.EMP_MAIL
+		        END AS EMP_MAIL,
+		        CASE
+		            WHEN A.ML_R_S_TYPE = 1 OR A.ML_R_S_TYPE = 4 THEN C.ML_RCVR
+		            WHEN A.ML_R_S_TYPE = 2 THEN F.ML_SNDPTY
+		        END AS EMP_ID
+		FROM WASTEBASKET A
+		JOIN MAIL B ON A.ML_SN = B.ML_SN
+		JOIN MAIL_RECEIVER C ON C.ML_SN = A.ML_SN
+		LEFT JOIN EMPLOYEE D ON C.ML_RCVR = D.EMP_ID
+		JOIN MAIL_SENDER F ON F.ML_SN = A.ML_SN
+		LEFT JOIN EMPLOYEE E ON F.ML_SNDPTY = E.EMP_ID
+		WHERE A.ML_DELETER = #{empId}
+		AND A.ML_SN = #{mlSn}
+	</select>
+	
+	<select id="bookmarkList" parameterType="String" resultMap="mailMap">
+		 SELECT 
+               A.ML_SN,
+               A.ML_TTL, 
+               A.ML_CN, 
+               A.ML_SNDNG_YMD, 
+               A.ML_IPT_YN,
+       CASE 
+           WHEN B.ML_R_S_TYPE = 1 THEN D.EMP_NM 
+           WHEN B.ML_R_S_TYPE = 2 THEN E.EMP_NM 
+       END AS EMP_NM,
+        CASE
+            WHEN B.ML_R_S_TYPE = 1 THEN C.ML_RCVR
+            WHEN B.ML_R_S_TYPE = 2 THEN F.ML_SNDPTY
+        END AS EMP_ID
+		FROM MAIL A
+		JOIN MAIL_BOOKMARK B ON A.ML_SN = B.ML_SN
+		JOIN MAIL_RECEIVER C ON C.ML_SN = A.ML_SN
+		LEFT JOIN EMPLOYEE D ON C.ML_RCVR = D.EMP_ID
+		JOIN MAIL_SENDER F ON F.ML_SN = A.ML_SN
+		LEFT JOIN EMPLOYEE E ON F.ML_SNDPTY = E.EMP_ID
+		WHERE B.BM_EMP_ID = #{empId}
+	</select>
+	
+	<delete id="removeBookmark" parameterType="hashMap">
+		DELETE
+		FROM MAIL_BOOKMARK
+		WHERE BM_EMP_ID = #{empId}
+		AND ML_SN = #{mlSn}
+	</delete>
+	
+	<select id="getBookmarks" parameterType="String" resultType="mailBookmarkVO">
+		SELECT *
+		FROM MAIL_BOOKMARK
+		WHERE BM_EMP_ID = #{empId}
+	</select>
+	
+	<select id="tsMailSend" parameterType="hashMap" resultMap="mailMap">
+		SELECT A.*, 
+			   R.ML_RCVR, 
+			   S.EMP_NM, 
+			   S.EMP_MAIL
+		FROM MAIL A
+		JOIN MAIL_SENDER D ON A.ML_SN = D.ML_SN
+		JOIN MAIL_RECEIVER R ON A.ML_SN = R.ML_SN
+		JOIN EMPLOYEE S ON R.ML_RCVR = S.EMP_ID
+		WHERE D.ML_SNDPTY = #{empId}
+        AND D.ML_STTS = 'M00'
+        AND A.ML_SN = #{mlSn}
+		AND NOT EXISTS (
+		    SELECT 1
+		    FROM WASTEBASKET C
+		    WHERE A.ML_SN = C.ML_SN
+		    AND C.ML_R_S_TYPE = '1'
+		)
+		
+	</select>
+	
+	<select id="tsMailFiles" parameterType="hashMap" resultType="atchfileDetailVO">
+		SELECT  C.ATCHFILE_SN, C.ATCHFILE_DETAIL_SN, C.ATCHFILE_DETAIL_LGCLFL
+		FROM MAIL A
+		JOIN ATCHFILE B ON A.ATCHFILE_SN = B.ATCHFILE_SN
+		JOIN ATCHFILE_DETAIL C ON B.ATCHFILE_SN = C.ATCHFILE_SN
+		WHERE ML_SN = #{mlSn}
+	</select>
+	
+	
+	<select id="mailReceiverList" parameterType="String" resultType="mailReceiverVO">
+		SELECT ML_RCVR
+        FROM MAIL_RECEIVER
+        WHERE ML_SN = #{mlSn}
+	</select>
+	
+	<!-- 파일삭제(임시저장) -->
+	<delete id="atchfileDelete" parameterType="String">
+		DELETE
+		FROM ATCHFILE
+		WHERE ATCHFILE_SN = #{atchfileSn}
+	</delete>
+	
+	<!-- 발신자 update(임시저장) -->
+	<update id="senderUpdate" parameterType="hashMap">
+		UPDATE MAIL_SENDER
+		SET ML_STTS = 'M01'
+		WHERE ML_SNDPTY = #{SempId}
+		AND ML_SN = #{mlSn}
+	</update>
+	
+	<!-- 수신자 update(임시저장) -->
+	<update id="receiverUpdate" parameterType="mailReceiverVO">
+		UPDATE MAIL_RECEIVER
+		SET ML_STTS = 'M01',
+		        ML_R_DT = SYSDATE
+		WHERE ML_SN = #{mlSn}
+		AND ML_RCVR = #{mlRcvr}
+	</update>
+	
+	<!-- 수신자 추가(임시저장) -->
+	<insert id="receiverAdd" parameterType="mailReceiverVO">
+		INSERT INTO MAIL_RECEIVER(ML_RCVR, ML_SN)
+		VALUES(#{mlRcvr}, #{mlSn})
+	</insert>
+	
+	<!-- 메일 update(임시저장) -->
+	<update id="tsMailUpdate" parameterType="mailVO">
+		UPDATE MAIL
+		SET ML_TTL = #{mlTtl},
+		    ML_CN = #{mlCn},
+		    ML_SNDNG_YMD = SYSDATE,
+		    ML_IPT_YN = #{mlIptYn},
+		    ATCHFILE_SN = #{atchfileSn}
+		WHERE ML_SN = #{mlSn}
+	</update>
+	
+	<!-- 읽지않은 메일함 -->
+	<select id="nrMailList" parameterType="hashMap" resultMap="mailMap">
+		SELECT 
+		    A.*, 
+		    D.ML_SNDPTY, 
+		    E.EMP_NM, 
+		    B.ML_STTS
+		FROM 
+		    MAIL A
+		JOIN 
+		    MAIL_SENDER D ON A.ML_SN = D.ML_SN 
+		    AND D.ML_STTS = 'M01'
+		JOIN 
+		    EMPLOYEE E ON D.ML_SNDPTY = E.EMP_ID
+		JOIN 
+		    MAIL_RECEIVER B ON A.ML_SN = B.ML_SN 
+		    AND B.ML_RCVR =  #{empId}
+		    AND B.ML_STTS = 'M01'
+		WHERE 
+		    NOT EXISTS (
+		        SELECT 1
+		        FROM WASTEBASKET C
+		        WHERE A.ML_SN = C.ML_SN
+		        AND C.ML_R_S_TYPE = '2'
+		    )
+	  <include refid="where"></include>
+	</select>
+	
+	
+	<update id="unreadMail" parameterType="hashMap">
+		UPDATE MAIL_RECEIVER
+        SET ML_STTS = 'M01'
+        WHERE ML_SN = #{mlSn}
+        AND ML_RCVR = #{empId}
+	</update>
+	
+	<select id="mailRcnt" parameterType="String" resultType="Integer">
+		 SELECT COUNT(*)
+         FROM MAIL_RECEIVER A
+		 WHERE  NOT EXISTS (
+		        SELECT 1
+		        FROM WASTEBASKET C
+		        WHERE A.ML_SN = C.ML_SN
+		        AND C.ML_R_S_TYPE = '2'
+		    )
+		 AND (A.ML_STTS = 'M01' OR A.ML_STTS = 'M02')
+         AND ML_RCVR = #{empId}
+	</select>
+	
+	<select id="mailScnt" parameterType="String" resultType="Integer">
+		 SELECT COUNT(*)
+         FROM MAIL_SENDER A
+         WHERE  NOT EXISTS (
+		        SELECT 1
+		        FROM WASTEBASKET C
+		        WHERE A.ML_SN = C.ML_SN
+		        AND C.ML_R_S_TYPE = '1'
+		    )
+         AND ML_SNDPTY = #{empId}
+         AND A.ML_STTS = 'M01'
+	</select>
+	
+	<select id="tsMailcnt" parameterType="String" resultType="Integer">
+		 SELECT COUNT(*)
+         FROM MAIL_SENDER A
+         WHERE  NOT EXISTS (
+		        SELECT 1
+		        FROM WASTEBASKET C
+		        WHERE A.ML_SN = C.ML_SN
+		        AND C.ML_R_S_TYPE = '4'
+         )
+         AND A.ML_SNDPTY = #{empId}
+         AND A.ML_STTS = 'M00'
+	</select>
+	
+	<select id="nrMailcnt" parameterType="String" resultType="Integer">
+		 SELECT COUNT(*)
+         FROM MAIL_RECEIVER A
+         WHERE  NOT EXISTS (
+		        SELECT 1
+		        FROM WASTEBASKET C
+		        WHERE A.ML_SN = C.ML_SN
+		        AND C.ML_R_S_TYPE = '2'
+		    )
+         AND ML_RCVR = #{empId}
+         AND ML_STTS = 'M01'
+	</select>
+	
+	<select id="wbMailcnt" parameterType="String" resultType="Integer">
+		  SELECT COUNT(*)
+          FROM WASTEBASKET
+          WHERE ML_DELETER = #{empId}
+          AND WASTEBASKET_YN = 'Y'
+	</select>
+	
+	<delete id="receiverDel" parameterType="hashMap">
+		DELETE
+		FROM MAIL_RECEIVER
+		WHERE ML_RCVR = #{empId}
+		AND ML_SN = #{mlSn}
+	</delete>
+	
+	<delete id="wbDelete" parameterType="com.groovit.groupware.vo.WastebasketVO">
+		UPDATE WASTEBASKET
+        SET WASTEBASKET_YN = 'N'
+        WHERE ML_DELETER = #{mlDeleter}
+        AND ML_SN = #{mlSn}
+	</delete>
+	
+</mapper>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.groovit.groupware.mapper.TodoMapper">
+
+    <select id="getAllTodos" parameterType="String" resultType="com.groovit.groupware.vo.TodoVO">
+        SELECT *
+        FROM todo
+        WHERE emp_id = #{empId}
+        ORDER BY todo_id ASC
+    </select>
+
+    <!-- 새로운 TODO_ID를 생성 -->
+    <select id="generateNewTodoId" resultType="string">
+        SELECT 'TD' || LPAD(MAX(TO_NUMBER(SUBSTR(TODO_ID, 3))) + 1, 4, '0') AS NEW_TODO_ID
+        FROM TODO
+    </select>
+
+    <insert id="insertTodo" parameterType="com.groovit.groupware.vo.TodoVO">
+	    <!-- 새로운 TODO_ID 생성 -->
+	    <selectKey keyProperty="todoId" resultType="string" order="BEFORE">
+	        SELECT 'TD' || LPAD(MAX(TO_NUMBER(SUBSTR(TODO_ID, 3))) + 1, 4, '0') AS NEW_TODO_ID
+	        FROM TODO
+	    </selectKey>
+	    INSERT INTO todo (todo_id, todo_ttl, todo_cn, todo_ctgr, todo_ddln, emp_id)
+	    VALUES (#{todoId}, #{todoTtl}, #{todoCn}, #{todoCtgr}, #{todoDdln}, #{empId})
+	</insert>
+
+    <!-- TODO 항목의 전체 내용을 업데이트 -->
+    <update id="updateTodo" parameterType="com.groovit.groupware.vo.TodoVO">
+	    UPDATE todo
+	    SET todo_ttl = #{todoTtl},
+	        todo_cn = #{todoCn},
+	        todo_ctgr = #{todoCtgr},
+	        todo_ddln = #{todoDdln},
+	        todo_stts = #{todoStts}
+	    WHERE todo_id = #{todoId}
+	</update>
+
+    <delete id="deleteTodoById" parameterType="String">
+        DELETE FROM TODO WHERE TODO_ID = #{todoId}
+    </delete>
+    
+
+</mapper>

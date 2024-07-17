@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="freeBoard">
+
+	<select id="freeBoardList" resultType="com.groovit.groupware.vo.FreeBoardVO">
+	SELECT
+	    fb.fb_no,
+	    fb.fb_ttl,
+	    fb.fb_cn,
+	    fb.atchfile_sn,
+	    fb.fb_frst_reg_dt,
+	    fb.fb_frst_wrtr,
+	    fb.fb_last_mdfcn_dt,
+	    fb.fb_last_rgtr,
+	    fb.fb_like_cnt,
+	    fb.fb_disllike_cnt,
+	    fb.fb_stts,
+	    fb.fb_cnt,
+	    emp.emp_nm
+	FROM
+	    free_board fb
+	JOIN
+	    employee emp ON fb.fb_frst_wrtr = emp.emp_id
+	ORDER BY
+	    fb.fb_frst_reg_dt DESC
+	</select>
+
+	<select id="freeBoardDetail" parameterType="com.groovit.groupware.vo.FreeBoardVO" resultType="com.groovit.groupware.vo.FreeBoardVO">
+	SELECT
+	    fb.fb_no,
+	    fb.fb_ttl,
+	    fb.fb_cn,
+	    fb.atchfile_sn,
+	    fb.fb_frst_reg_dt,
+	    fb.fb_frst_wrtr,
+	    fb.fb_last_mdfcn_dt,
+	    fb.fb_last_rgtr,
+	    fb.fb_like_cnt,
+	    fb.fb_disllike_cnt,
+	    fb.fb_stts,
+	    fb.fb_cnt,
+	    emp.emp_nm
+	FROM
+	    free_board fb
+	JOIN
+	    employee emp ON fb.fb_frst_wrtr = emp.emp_id
+	WHERE
+	    fb.fb_no = #{fbNo}
+	</select>
+	
+	<update id="freeBoardViewCount" parameterType="com.groovit.groupware.vo.FreeBoardVO" >
+	    UPDATE FREE_BOARD
+        	SET FB_CNT = FB_CNT + 1
+   		 WHERE FB_NO = #{fbNo}
+	</update>
+
+	<delete id="freeBoardDelete" parameterType="com.groovit.groupware.vo.FreeBoardVO">
+		DELETE FROM FREE_BOARD
+        WHERE FB_NO = #{fbNo}
+	</delete>	
+
+	
+	<insert id="freeBoardCreatePost" parameterType="com.groovit.groupware.vo.FreeBoardVO" >
+  		<selectKey resultType="String" order="BEFORE" keyProperty="fbNo">
+	    SELECT NVL(
+           SUBSTR(MAX(FB_NO), 1, 3) || 
+           LPAD(TO_NUMBER(SUBSTR(MAX(FB_NO), 4)) + 1, 3, '0'),
+           '자유-001'
+       )
+		FROM FREE_BOARD
+					
+    	</selectKey>
+    	
+        INSERT INTO FREE_BOARD
+        (FB_NO, FB_TTL, FB_CN, FB_FRST_REG_DT, FB_FRST_WRTR, FB_LAST_MDFCN_DT, FB_LAST_RGTR, FB_LIKE_CNT, FB_DISLLIKE_CNT, FB_STTS, FB_CNT)
+        VALUES 
+        (#{fbNo}, #{fbTtl}, #{fbCn} , SYSDATE, #{fbFrstWrtr}, SYSDATE, #{fbFrstWrtr}, 0, 0, '0' , 0)
+   	 </insert>
+	
+	<update id="freeBoardUpdatePost" parameterType="com.groovit.groupware.vo.FreeBoardVO">
+        UPDATE free_board
+		SET
+		    FB_TTL = #{fbTtl} , 
+		    FB_CN = #{fbCn}       , 
+		    FB_LAST_MDFCN_DT = SYSDATE , 
+		    FB_LAST_RGTR = #{fbLastRgtr}
+		WHERE
+	        FB_NO = #{fbNo} 
+	</update>
+		
+	<insert id="freeReportBoard" parameterType="com.groovit.groupware.vo.DeclarationBoardVO">
+		<selectKey resultType="String" order="BEFORE" keyProperty="dclrNo">
+            SELECT NVL(
+            SUBSTR(MAX(dclr_no), 1, 3) ||
+            LPAD(TO_NUMBER(SUBSTR(MAX(dclr_no), 4)) + 1, 3, '0'),
+            'DB-001'
+            )
+            FROM declaration_board
+        </selectKey>
+         INSERT INTO declaration_board (
+		    dclr_no
+		    , emp_id
+		    , dclr_type
+		    , dclr_stts
+		    , fb_no
+		    , dclr_date
+		) VALUES (
+		    #{dclrNo}
+		  , #{empId}
+		  , #{dclrType}
+		  , '1'
+		  , #{fbNo}
+		  , SYSDATE
+		)
+	</insert>
+	
+	<update id="freeReportBoardUpdata" parameterType="com.groovit.groupware.vo.DeclarationBoardVO">
+		UPDATE free_board
+		SET
+		    FB_STTS = '1'
+		WHERE
+	        FB_NO = #{fbNo}
+	</update>
+	
+	
+	
+	
+	
+	<update id="freeBoardLike" parameterType="com.groovit.groupware.vo.FreeBoardVO">
+		UPDATE free_board
+		SET
+		    FB_LIKE_CNT = FB_LIKE_CNT+1
+		WHERE
+	        FB_NO = #{fbNo} 
+	</update>
+	
+	
+	<update id="freeBoardDisLike" parameterType="com.groovit.groupware.vo.FreeBoardVO">
+		UPDATE free_board
+		SET
+		    FB_DISLLIKE_CNT = FB_DISLLIKE_CNT+1
+		WHERE
+	        FB_NO = #{fbNo} 
+	</update>
+		
+
+</mapper>

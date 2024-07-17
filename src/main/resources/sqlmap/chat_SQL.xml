@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.groovit.groupware.mapper.ChatMapper">
+	
+	<resultMap type="employeeVO" id="EmployeeVOMap">
+		<result property="empId" column="EMP_ID"/>
+		<result property="empPass" column="EMP_PASS"/>
+		<result property="empMng" column="EMP_MNG"/>
+		<result property="atchfileSn" column="ATCHFILE_SN"/>
+		<result property="empStts" column="EMP_STTS"/>
+		<result property="empNm" column="EMP_NM"/>
+		<result property="empMail" column="EMP_MAIL"/>
+		<result property="empEml" column="EMP_EML"/>
+		<result property="empTelno" column="EMP_TELNO"/>
+		<result property="empAddr" column="EMP_ADDR"/>
+		<result property="empDaddr" column="EMP_DADDR"/>
+		<result property="empBrdt" column="EMP_BRDT"/>
+		<result property="empJncmpYmd" column="EMP_JNCMP_YMD"/>
+		<result property="deptCd" column="DEPT_CD"/>
+		<result property="deptNm" column="DEPT_NM"/>
+		<result property="jbgdCd" column="JBGD_CD"/>
+		<result property="jbgdNm" column="JBGD_NM"/>
+		<collection property="employeeAuthrtVOList" resultMap="employeeAuthrtVOMap"></collection>
+		<collection property="atchfileDetailVOList" resultMap="atchfileDetailMap"></collection>
+	</resultMap>
+	
+	<resultMap type="employeeAuthrtVO" id="employeeAuthrtVOMap">
+		<result property="eaAuthrt" column="EA_AUTHRT"/>
+		<result property="empId" column="EMP_ID"/>
+	</resultMap>
+	
+	<resultMap type="atchfileDetailVO" id="atchfileDetailMap">
+		<result property="atchfileDetailSn" column="ATCHFILE_DETAIL_SN"/>
+		<result property="atchfileSn" column="ATCHFILE_SN"/>
+		<result property="atchfileDetailLgclfl" column="ATCHFILE_DETAIL_LGCLFL"/>
+		<result property="atchfileDetailPhyscl" column="ATCHFILE_DETAIL_PHYSCL"/>
+		<result property="atchfileDetailPhysclPath" column="ATCHFILE_DETAIL_PHYSCL_PATH"/>
+		<result property="atchfileDetailSize" column="ATCHFILE_DETAIL_SIZE"/>
+		<result property="atchfileDetailExtsn" column="ATCHFILE_DETAIL_EXTSN"/>
+		<result property="empId" column="EMP_ID"/>
+		<result property="atchfileDetailRegDt" column="ATCHFILE_DETAIL_REG_DT"/>
+		<result property="atchfileDetailYn" column="ATCHFILE_DETAIL_YN"/>
+		<result property="atchfileDelyn" column="ATCHFILE_DELYN"/>
+	</resultMap>
+	
+	
+	<select id="employeeVOList" resultType="employeeVO" resultMap="EmployeeVOMap">
+		SELECT
+            A.EMP_ID, 
+            A.EMP_PASS, 
+            A.EMP_MNG, 
+            A.ATCHFILE_SN, 
+            A.EMP_STTS, 
+            A.EMP_NM, 
+            A.EMP_MAIL, 
+            A.EMP_EML, 
+            A.EMP_TELNO, 
+            A.EMP_ADDR, 
+            A.EMP_DADDR, 
+            A.EMP_BRDT, 
+            A.EMP_JNCMP_YMD, 
+            A.DEPT_CD,
+            (SELECT dept_nm FROM department where dept_cd = A.DEPT_CD) AS DEPT_NM,
+            A.JBGD_CD,
+            (SELECT jbgd_nm FROM job_grade where  jbgd_cd = A.JBGD_CD) AS JBGD_NM,
+            B.EA_AUTHRT,
+            C.ATCHFILE_DETAIL_PHYSCL_PATH
+        FROM EMPLOYEE A LEFT OUTER JOIN  EMPLOYEE_AUTHRT B ON(A.EMP_ID = B.EMP_ID)
+                        LEFT OUTER JOIN  ATCHFILE_DETAIL C ON(A.ATCHFILE_SN = C.ATCHFILE_SN)
+	</select>
+
+
+
+	
+<!-- 	<select id="chatEmpDetail" resultType="employeeVO" resultMap="EmployeeVOMap">
+	    SELECT
+            A.EMP_ID, 
+            A.EMP_PASS, 
+            A.EMP_MNG, 
+            A.ATCHFILE_SN, 
+            A.EMP_STTS, 
+            A.EMP_NM, 
+            A.EMP_MAIL, 
+            A.EMP_EML, 
+            A.EMP_TELNO, 
+            A.EMP_ADDR, 
+            A.EMP_DADDR, 
+            A.EMP_BRDT, 
+            A.EMP_JNCMP_YMD, 
+            A.DEPT_CD,
+            (SELECT dept_nm FROM department where dept_cd = A.DEPT_CD) AS DEPT_NM,
+            A.JBGD_CD,
+            (SELECT jbgd_nm FROM job_grade where  jbgd_cd = A.JBGD_CD) AS JBGD_NM,
+            B.EA_AUTHRT,
+            C.ATCHFILE_DETAIL_PHYSCL_PATH
+        FROM EMPLOYEE A LEFT OUTER JOIN  EMPLOYEE_AUTHRT B ON(A.EMP_ID = B.EMP_ID)
+                        LEFT OUTER JOIN  ATCHFILE_DETAIL C ON(A.ATCHFILE_SN = C.ATCHFILE_SN)
+        WHERE  A.EMP_ID = #{empId}
+ 	</select> -->
+
+
+
+	<select id="chatRoomFind" parameterType="hashMap" resultType="String">
+		SELECT CHAT_NO
+		FROM CHAT_ROOM
+		WHERE 
+		  CHAT_ROOM_NAME LIKE '%' || #{loginEmpId} || '%' 
+		  AND CHAT_ROOM_NAME LIKE '%' || #{listEmpId} || '%'
+		  AND CHAT_DEL_YN = 'N'
+	</select>
+
+	<insert id="chatRoomCreate" >
+		<selectKey resultType="String" order="BEFORE" keyProperty="chatNo">
+		    SELECT NVL( 
+	           SUBSTR(MAX(CHAT_NO), 1, 2) || 
+	           LPAD(TO_NUMBER(SUBSTR(MAX(CHAT_NO), 4)) + 1, 3, '0'),
+	           'CH001'
+	       )
+			FROM CHAT_ROOM
+    	</selectKey>
+        INSERT INTO chat_room (
+		    chat_no
+		    , chat_room_name
+		    , chat_crt_dt
+		    , chat_del_yn
+		) VALUES (
+		    #{chatNo}
+		  , #{chatRoomname}
+		  , SYSDATE
+		  , 'N'
+		)
+	</insert>
+
+
+	<insert id="createDescription" parameterType="hashMap">
+	    <selectKey keyProperty="chatDsctnNo" resultType="int" order="BEFORE">
+	        SELECT NVL(MAX(chat_dsctn_no), 0) + 1
+	        FROM chat_description
+	        WHERE chat_no = #{chatNo}
+	    </selectKey>
+	    INSERT INTO chat_description (
+	        chat_dsctn_no,
+	        chat_no,
+	        char_sndng_hr,
+	        char_sndng_cn
+	    ) VALUES (
+	        #{chatDsctnNo},
+	        #{chatNo},
+	        SYSDATE,
+	        #{chatSndngCn}
+	    )
+	</insert>
+
+	<insert id="createSender" parameterType="hashMap">
+			<selectKey keyProperty="chatDsctnNo" resultType="int" order="BEFORE">
+		        SELECT NVL(MAX(chat_dsctn_no), 0) + 1
+		        FROM CHAT_SENDER
+		        WHERE chat_no = #{chatNo}
+	    	</selectKey>
+	
+			INSERT INTO chat_sender (
+				chat_dsctn_no
+				, chat_no
+				, chat_s_emp_id
+				, chat_s_dt
+			) VALUES (
+				  #{chatDsctnNo}
+				, #{chatNo}
+				, #{chatSEmpId}
+				, SYSDATE
+			)
+	
+	</insert>
+	
+	<insert id="createReceiver" parameterType="hashMap">
+			<selectKey keyProperty="chatDsctnNo" resultType="int" order="BEFORE">
+		        SELECT NVL(MAX(chat_dsctn_no), 0) + 1
+		        FROM CHAT_RECEIVER
+		        WHERE chat_no = #{chatNo}
+	    	</selectKey>
+			INSERT INTO chat_receiver (
+			    chat_dsctn_no
+			    , chat_no
+			    , chat_r_emp_id
+			    , chat_r_dt
+			    , chat_read_yn
+			) VALUES (
+			    #{chatDsctnNo}
+			  , #{chatNo}
+			  , #{chatREmpId}
+			  , SYSDATE
+			  , 'N'
+			)
+	</insert>
+
+
+	<select id="chatHistory" parameterType="hashMap" resultType="hashMap">
+        SELECT
+		    cd.CHAT_DSCTN_NO,
+		    cd.CHAT_NO,
+		    TO_CHAR(cd.CHAR_SNDNG_HR, 'YYYY-MM-DD"T"HH24:MI:SS.FF') AS CHAR_SNDNG_HR,
+		    cd.CHAR_SNDNG_CN,
+		    cs.CHAT_S_EMP_ID,
+		    cr.CHAT_R_EMP_ID,
+		    cr.CHAT_READ_YN
+		FROM
+		    CHAT_DESCRIPTION cd
+		JOIN
+		    CHAT_SENDER cs ON cd.CHAT_DSCTN_NO = cs.CHAT_DSCTN_NO AND cd.CHAT_NO = cs.CHAT_NO
+		JOIN
+		    CHAT_RECEIVER cr ON cd.CHAT_DSCTN_NO = cr.CHAT_DSCTN_NO AND cd.CHAT_NO = cr.CHAT_NO
+		WHERE
+		    cd.CHAT_NO = #{chatNo}
+		ORDER BY
+		    cd.CHAR_SNDNG_HR ASC
+	</select>
+
+
+</mapper>
